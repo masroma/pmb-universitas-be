@@ -35,13 +35,13 @@
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">DB</span>
                         Dashboard
                     </a>
-                    <a href="{{ route('admin.pmb-data.index') }}" class="{{ request()->routeIs('admin.pmb-data.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
-                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">PM</span>
-                        Data PMB
-                    </a>
                     <a href="{{ route('admin.local-applications.index') }}" class="{{ request()->routeIs('admin.local-applications.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">PL</span>
                         Pendaftaran Lokal
+                    </a>
+                    <a href="{{ route('admin.ai-chat-leads.index') }}" class="{{ request()->routeIs('admin.ai-chat-leads.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">AI</span>
+                        CRM AI
                     </a>
                     <a href="{{ route('admin.pmb-catalog.opened-registrations') }}" class="{{ request()->routeIs('admin.pmb-catalog.opened-registrations') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">PD</span>
@@ -58,6 +58,14 @@
                     <a href="{{ route('admin.pmb-catalog.periods') }}" class="{{ request()->routeIs('admin.pmb-catalog.periods') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">PR</span>
                         Periode
+                    </a>
+                    <a href="{{ route('admin.pmb-information.index') }}" class="{{ request()->routeIs('admin.pmb-information.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">KP</span>
+                        Konten PMB
+                    </a>
+                    <a href="{{ route('admin.tuition-fees.index') }}" class="{{ request()->routeIs('admin.tuition-fees.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">BK</span>
+                        Biaya Kuliah
                     </a>
                     <a href="{{ route('admin.settings.edit') }}" class="{{ request()->routeIs('admin.settings.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">ST</span>

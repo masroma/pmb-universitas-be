@@ -15,6 +15,11 @@ class AiChatController extends Controller
         $payload = $request->validate([
             'message' => ['required', 'string', 'max:1000'],
             'conversation_id' => ['nullable', 'string', 'max:100'],
+            'visitor' => ['nullable', 'array'],
+            'visitor.name' => ['nullable', 'string', 'max:255'],
+            'visitor.email' => ['nullable', 'email', 'max:255'],
+            'visitor.whatsapp' => ['nullable', 'string', 'max:30'],
+            'contact_consent' => ['nullable', 'boolean'],
         ]);
 
         try {

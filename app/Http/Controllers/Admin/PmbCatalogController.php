@@ -19,6 +19,8 @@ class PmbCatalogController extends Controller
     {
         $search = $request->string('q')->toString();
         $selectedPeriodYear = $request->string('periode_akademik')->toString();
+        $selectedStudyProgram = $request->string('program_studi')->toString();
+        $selectedRegistrationPath = $request->string('jalur_pendaftaran')->toString();
         $selectedStatus = $request->string('status')->toString();
         $periodIdsByStatus = collect();
 
@@ -32,6 +34,12 @@ class PmbCatalogController extends Controller
         $records = PmbSevimaRecord::query()
             ->where('entity_type', 'program-studi-dibuka')
             ->when($selectedPeriodYear !== '', fn ($query) => $query->where('raw_payload->periode_akademik', $selectedPeriodYear))
+            ->when($selectedStudyProgram !== '', fn ($query) => $query->where(function ($query) use ($selectedStudyProgram): void {
+                $query
+                    ->where('raw_payload->program_studi', $selectedStudyProgram)
+                    ->orWhere('title', $selectedStudyProgram);
+            }))
+            ->when($selectedRegistrationPath !== '', fn ($query) => $query->where('raw_payload->jalur_pendaftaran', $selectedRegistrationPath))
             ->when($selectedStatus !== '', fn ($query) => $query->whereIn('parent_sevima_id', $periodIdsByStatus))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 $query
@@ -58,6 +66,28 @@ class PmbCatalogController extends Controller
             ->sortDesc()
             ->values();
 
+        $studyPrograms = PmbSevimaRecord::query()
+            ->where('entity_type', 'program-studi-dibuka')
+            ->get(['raw_payload', 'title'])
+            ->map(fn (PmbSevimaRecord $record): ?string => filled(data_get($record->raw_payload, 'program_studi'))
+                ? (string) data_get($record->raw_payload, 'program_studi')
+                : $record->title)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
+        $registrationPaths = PmbSevimaRecord::query()
+            ->where('entity_type', 'program-studi-dibuka')
+            ->get(['raw_payload'])
+            ->map(fn (PmbSevimaRecord $record): ?string => filled(data_get($record->raw_payload, 'jalur_pendaftaran'))
+                ? (string) data_get($record->raw_payload, 'jalur_pendaftaran')
+                : null)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
         $statusOptions = PmbSevimaRecord::query()
             ->where('entity_type', 'periode-pendaftaran')
             ->pluck('status')
@@ -74,12 +104,16 @@ class PmbCatalogController extends Controller
             'campusSetting' => $this->campusSetting(),
             'periodStatusBySevimaId' => $periodStatusBySevimaId,
             'periodYears' => $periodYears,
+            'registrationPaths' => $registrationPaths,
             'records' => $records,
             'search' => $search,
             'selectedPeriodYear' => $selectedPeriodYear,
+            'selectedRegistrationPath' => $selectedRegistrationPath,
+            'selectedStudyProgram' => $selectedStudyProgram,
             'selectedStatus' => $selectedStatus,
             'statusOptions' => $statusOptions,
-            'totalRecords' => PmbSevimaRecord::query()->where('entity_type', 'program-studi-dibuka')->count(),
+            'studyPrograms' => $studyPrograms,
+            'totalRecords' => $records->total(),
         ]);
     }
 

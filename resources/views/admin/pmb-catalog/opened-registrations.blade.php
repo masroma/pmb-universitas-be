@@ -22,12 +22,8 @@
         </section>
 
         <section class="rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div class="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <h3 class="text-lg font-bold text-slate-950">Daftar Pendaftaran Dibuka</h3>
-                    <p class="mt-1 text-sm text-slate-500">Filter berdasarkan tahun periode, status, prodi, jalur, atau sistem kuliah.</p>
-                </div>
-                <form method="GET" action="{{ route('admin.pmb-catalog.opened-registrations') }}" class="grid gap-2 sm:grid-cols-[11rem_11rem_14rem_auto]">
+            <div class="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-end">
+                <form method="GET" action="{{ route('admin.pmb-catalog.opened-registrations') }}" class="grid gap-2 sm:grid-cols-2 xl:grid-cols-[11rem_11rem_14rem_12rem_14rem_auto]">
                     <select
                         name="periode_akademik"
                         class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -44,6 +40,24 @@
                         <option value="">Semua status</option>
                         @foreach ($statusOptions as $status)
                             <option value="{{ $status }}" @selected($selectedStatus === $status)>{{ $status }}</option>
+                        @endforeach
+                    </select>
+                    <select
+                        name="program_studi"
+                        class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    >
+                        <option value="">Semua prodi</option>
+                        @foreach ($studyPrograms as $studyProgram)
+                            <option value="{{ $studyProgram }}" @selected($selectedStudyProgram === $studyProgram)>{{ $studyProgram }}</option>
+                        @endforeach
+                    </select>
+                    <select
+                        name="jalur_pendaftaran"
+                        class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                    >
+                        <option value="">Semua jalur</option>
+                        @foreach ($registrationPaths as $registrationPath)
+                            <option value="{{ $registrationPath }}" @selected($selectedRegistrationPath === $registrationPath)>{{ $registrationPath }}</option>
                         @endforeach
                     </select>
                     <input
