@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AiChatLead;
 use App\Models\CampusSetting;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 use Illuminate\Validation\Rule;
 
@@ -70,16 +72,47 @@ class AiChatLeadController extends Controller
             'follow_up_note' => ['nullable', 'string'],
         ]);
 
+        $before = $lead->only(['follow_up_status', 'follow_up_note', 'followed_up_at', 'followed_up_by']);
         $lead->update([
             'follow_up_status' => $payload['follow_up_status'],
             'follow_up_note' => $payload['follow_up_note'] ?? null,
             'followed_up_at' => now(),
             'followed_up_by' => $request->user()->id,
         ]);
+        AuditLogger::record('lead_follow_up_updated', 'ai_chat_leads', $lead->id, $before, $lead->fresh()->only(['follow_up_status', 'follow_up_note', 'followed_up_at', 'followed_up_by']), $request);
 
         return redirect()
             ->route('admin.ai-chat-leads.show', $lead)
             ->with('status', 'Status follow up lead berhasil diperbarui.');
+    }
+
+    public function export(): StreamedResponse
+    {
+        $filename = 'lead-ai-pmb-'.now()->format('Ymd-His').'.csv';
+
+        return response()->streamDownload(function (): void {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Nama', 'Email', 'WhatsApp', 'Minat Prodi', 'Score', 'Status', 'Follow Up', 'Masuk']);
+
+            AiChatLead::query()
+                ->orderByDesc('score')
+                ->chunk(200, function ($leads) use ($handle): void {
+                    foreach ($leads as $lead) {
+                        fputcsv($handle, [
+                            $lead->name,
+                            $lead->email,
+                            $lead->whatsapp,
+                            $lead->study_program_interest,
+                            $lead->score,
+                            $lead->status,
+                            $lead->follow_up_status,
+                            $lead->created_at,
+                        ]);
+                    }
+                });
+
+            fclose($handle);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 
     private function campusSetting(): CampusSetting

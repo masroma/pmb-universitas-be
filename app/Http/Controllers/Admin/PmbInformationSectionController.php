@@ -4,19 +4,22 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CampusSetting;
-use App\Models\PmbInformationSection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class PmbInformationSectionController extends Controller
 {
     public const CATEGORIES = [
         'info-program' => 'Info Program',
+        'keunggulan' => 'Keunggulan Kampus',
         'lokasi-kampus' => 'Lokasi Kampus',
         'jadwal' => 'Jadwal',
         'kelas' => 'Waktu Kuliah',
         'syarat' => 'Syarat Masuk',
+        'alur-pendaftaran' => 'Alur Pendaftaran',
         'kurikulum' => 'Kurikulum',
         'biaya' => 'Catatan Biaya',
         'kontak' => 'Kontak & Link',
@@ -28,8 +31,7 @@ class PmbInformationSectionController extends Controller
         $selectedProgramLevel = $request->string('program_level')->toString();
         $selectedCategory = $request->string('category')->toString();
 
-        $sections = PmbInformationSection::query()
-            ->when($selectedProgramLevel !== '', fn ($query) => $query->where('program_level', $selectedProgramLevel))
+        $sections = DB::table('pmb_content_blocks')
             ->when($selectedCategory !== '', fn ($query) => $query->where('category', $selectedCategory))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 $query
@@ -37,12 +39,13 @@ class PmbInformationSectionController extends Controller
                     ->orWhere('subtitle', 'like', "%{$search}%")
                     ->orWhere('body', 'like', "%{$search}%");
             }))
-            ->orderBy('program_level')
             ->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->paginate(20)
             ->withQueryString();
+
+        $sections->setCollection($sections->getCollection()->map(fn ($section) => $this->hydrateSection($section)));
 
         return view('admin.pmb-information.index', [
             'campusSetting' => $this->campusSetting(),
@@ -52,8 +55,8 @@ class PmbInformationSectionController extends Controller
             'sections' => $sections,
             'selectedCategory' => $selectedCategory,
             'selectedProgramLevel' => $selectedProgramLevel,
-            'totalActiveSections' => PmbInformationSection::query()->where('is_active', true)->count(),
-            'totalSections' => PmbInformationSection::query()->count(),
+            'totalActiveSections' => DB::table('pmb_content_blocks')->where('is_active', true)->count(),
+            'totalSections' => DB::table('pmb_content_blocks')->count(),
         ]);
     }
 
@@ -63,37 +66,55 @@ class PmbInformationSectionController extends Controller
             'campusSetting' => $this->campusSetting(),
             'categories' => self::CATEGORIES,
             'programLevels' => $this->programLevels(),
-            'section' => new PmbInformationSection([
+            'section' => (object) [
+                'id' => null,
                 'program_level' => 'Umum',
                 'category' => 'info-program',
+                'title' => '',
+                'subtitle' => '',
+                'body' => '',
+                'items' => [],
                 'is_active' => true,
                 'sort_order' => 0,
-            ]),
+            ],
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        PmbInformationSection::query()->create($this->validatedData($request));
+        DB::table('pmb_content_blocks')->insert([
+            ...$this->validatedData($request),
+            'institution_id' => $this->institutionId(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         return redirect()
             ->route('admin.pmb-information.index')
             ->with('status', 'Konten PMB berhasil ditambahkan.');
     }
 
-    public function edit(PmbInformationSection $pmbInformation): View
+    public function edit(int $pmbInformation): View
     {
+        $section = DB::table('pmb_content_blocks')->where('id', $pmbInformation)->first();
+        abort_if(! $section, 404);
+
         return view('admin.pmb-information.edit', [
             'campusSetting' => $this->campusSetting(),
             'categories' => self::CATEGORIES,
             'programLevels' => $this->programLevels(),
-            'section' => $pmbInformation,
+            'section' => $this->hydrateSection($section),
         ]);
     }
 
-    public function update(Request $request, PmbInformationSection $pmbInformation): RedirectResponse
+    public function update(Request $request, int $pmbInformation): RedirectResponse
     {
-        $pmbInformation->update($this->validatedData($request));
+        DB::table('pmb_content_blocks')
+            ->where('id', $pmbInformation)
+            ->update([
+                ...$this->validatedData($request),
+                'updated_at' => now(),
+            ]);
 
         return redirect()
             ->route('admin.pmb-information.index', [
@@ -105,9 +126,9 @@ class PmbInformationSectionController extends Controller
             ->with('status', 'Konten PMB berhasil diperbarui.');
     }
 
-    public function destroy(PmbInformationSection $pmbInformation): RedirectResponse
+    public function destroy(int $pmbInformation): RedirectResponse
     {
-        $pmbInformation->delete();
+        DB::table('pmb_content_blocks')->where('id', $pmbInformation)->delete();
 
         return redirect()
             ->route('admin.pmb-information.index')
@@ -126,16 +147,57 @@ class PmbInformationSectionController extends Controller
             'sort_order' => ['required', 'integer', 'min:0', 'max:65535'],
         ]);
 
-        $validated['items'] = collect(preg_split('/\r\n|\r|\n/', $validated['items_text'] ?? ''))
+        $items = collect(preg_split('/\r\n|\r|\n/', $validated['items_text'] ?? ''))
             ->map(fn (string $item): string => trim($item))
             ->filter()
             ->values()
             ->all();
-        $validated['is_active'] = $request->boolean('is_active');
 
-        unset($validated['items_text']);
+        return [
+            'category' => $validated['category'],
+            'title' => $validated['title'],
+            'subtitle' => $validated['subtitle'] ?? null,
+            'body' => $validated['body'] ?? null,
+            'items' => json_encode($items),
+            'sort_order' => (int) $validated['sort_order'],
+            'is_active' => $request->boolean('is_active'),
+        ];
+    }
 
-        return $validated;
+    private function hydrateSection(object $section): object
+    {
+        $section->program_level = 'Umum';
+        $section->items = $this->decodeJson($section->items ?? null);
+
+        return $section;
+    }
+
+    private function institutionId(): int
+    {
+        $institutionId = DB::table('institutions')->where('is_active', true)->orderBy('id')->value('id');
+
+        if ($institutionId) {
+            return (int) $institutionId;
+        }
+
+        return (int) DB::table('institutions')->insertGetId([
+            'code' => 'default',
+            'name' => config('app.name', 'Kampus'),
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    private function decodeJson(?string $value): array
+    {
+        if (! $value) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 
     private function campusSetting(): CampusSetting
@@ -147,6 +209,6 @@ class PmbInformationSectionController extends Controller
 
     private function programLevels(): array
     {
-        return ['Umum', 'S1', 'S2', 'S3'];
+        return ['Umum'];
     }
 }

@@ -99,10 +99,10 @@
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap gap-2">
-                                        <a href="{{ route('admin.pmb-information.edit', array_merge([$section], request()->only(['q', 'program_level', 'category', 'page']))) }}" class="rounded-xl bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-100">
+                                        <a href="{{ route('admin.pmb-information.edit', array_merge([$section->id], request()->only(['q', 'program_level', 'category', 'page']))) }}" class="rounded-xl bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-100">
                                             Edit
                                         </a>
-                                        <form method="POST" action="{{ route('admin.pmb-information.destroy', $section) }}" onsubmit="return confirm('Hapus konten ini?')">
+                                        <form method="POST" action="{{ route('admin.pmb-information.destroy', $section->id) }}" onsubmit="return confirm('Hapus konten ini?')">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 ring-1 ring-red-100 transition hover:bg-red-100">

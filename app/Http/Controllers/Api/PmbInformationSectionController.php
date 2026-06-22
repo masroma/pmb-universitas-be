@@ -4,31 +4,30 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Admin\PmbInformationSectionController as AdminPmbInformationSectionController;
 use App\Http\Controllers\Controller;
-use App\Models\PmbInformationSection;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class PmbInformationSectionController extends Controller
 {
     public function index(): JsonResponse
     {
-        $sections = PmbInformationSection::query()
+        $sections = DB::table('pmb_content_blocks')
             ->where('is_active', true)
-            ->orderBy('program_level')
             ->orderBy('category')
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()
-            ->groupBy(fn (PmbInformationSection $section): string => $section->program_level ?: 'Umum')
+            ->groupBy(fn (): string => 'Umum')
             ->map(fn ($programSections): array => $programSections
-                ->map(fn (PmbInformationSection $section): array => [
+                ->map(fn ($section): array => [
                     'id' => $section->id,
-                    'programLevel' => $section->program_level ?: 'Umum',
+                    'programLevel' => 'Umum',
                     'category' => $section->category,
                     'categoryLabel' => AdminPmbInformationSectionController::CATEGORIES[$section->category] ?? $section->category,
                     'title' => $section->title,
                     'subtitle' => $section->subtitle,
                     'body' => $section->body,
-                    'items' => $section->items ?? [],
+                    'items' => $this->decodeJson($section->items),
                 ])
                 ->values()
                 ->all())
@@ -37,5 +36,16 @@ class PmbInformationSectionController extends Controller
         return response()->json([
             'data' => $sections,
         ]);
+    }
+
+    private function decodeJson(?string $value): array
+    {
+        if (! $value) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

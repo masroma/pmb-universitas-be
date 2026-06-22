@@ -50,9 +50,6 @@
                             Cari
                         </button>
                     </form>
-                    <a href="{{ route('admin.tuition-fees.create') }}" class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
-                        Tambah Biaya
-                    </a>
                 </div>
             </div>
 
@@ -73,21 +70,15 @@
                         @forelse ($tuitionFees as $tuitionFee)
                             <tr class="align-top">
                                 <td class="px-5 py-4">
-                                    <p class="font-bold text-slate-950">{{ $tuitionFee->program_level }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $tuitionFee->period?->name ?: 'Semua periode' }}</p>
+                                    <p class="font-bold text-slate-950">{{ $tuitionFee->program_level }} {{ $tuitionFee->study_program_name }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $tuitionFee->period_name ?: 'Semua periode' }} · {{ $tuitionFee->academic_year ?: '-' }}</p>
                                     <p class="mt-1 text-xs text-slate-500">
-                                        @if ($tuitionFee->studyProgram)
-                                            Khusus {{ $tuitionFee->studyProgram->title }}
-                                        @elseif ($tuitionFee->study_program)
-                                            Khusus {{ $tuitionFee->study_program }}
-                                        @else
-                                            Semua prodi
-                                        @endif
+                                        {{ $tuitionFee->path_name ?: 'Jalur umum' }} · {{ $tuitionFee->class_name ?: 'Kelas umum' }}
                                     </p>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <p class="font-semibold text-slate-800">{{ $tuitionFee->campus }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $tuitionFee->wave ?: 'Tanpa gelombang' }}</p>
+                                    <p class="font-semibold text-slate-800">{{ $tuitionFee->campus_name }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $tuitionFee->wave_name ?: 'Tanpa gelombang' }}</p>
                                 </td>
                                 <td class="px-5 py-4 font-semibold text-slate-700">{{ $rupiah($tuitionFee->registration_fee) }}</td>
                                 <td class="px-5 py-4 text-slate-700">
@@ -98,21 +89,11 @@
                                     <span class="{{ $tuitionFee->is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-slate-100 text-slate-600 ring-slate-200' }} rounded-full px-3 py-1 text-xs font-bold ring-1">
                                         {{ $tuitionFee->is_active ? 'Aktif' : 'Tidak Aktif' }}
                                     </span>
-                                    <p class="mt-2 text-xs text-slate-400">Urutan {{ $tuitionFee->sort_order }}</p>
                                 </td>
                                 <td class="px-5 py-4">
-                                    <div class="flex flex-wrap gap-2">
-                                        <a href="{{ route('admin.tuition-fees.edit', array_merge([$tuitionFee], request()->only(['q', 'page']))) }}" class="rounded-xl bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 ring-1 ring-blue-100 transition hover:bg-blue-100">
-                                            Edit
-                                        </a>
-                                        <form method="POST" action="{{ route('admin.tuition-fees.destroy', $tuitionFee) }}" onsubmit="return confirm('Hapus data biaya ini?')">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 ring-1 ring-red-100 transition hover:bg-red-100">
-                                                Hapus
-                                            </button>
-                                        </form>
-                                    </div>
+                                    <span class="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500 ring-1 ring-slate-200">
+                                        Diatur dari opsi pendaftaran
+                                    </span>
                                 </td>
                             </tr>
                         @empty

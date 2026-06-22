@@ -8,10 +8,10 @@
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <p class="text-sm font-bold text-blue-700">Periode Akademik SEVIMA</p>
+                    <p class="text-sm font-bold text-blue-700">Periode PMB Standalone</p>
                     <h2 class="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-950">Periode</h2>
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                        Daftar periode akademik dari endpoint <span class="font-semibold text-slate-700">/siakadcloud/v1/periode</span> yang disimpan di database lokal.
+                        Daftar periode PMB yang dipakai portal pendaftaran, API, dan AI.
                     </p>
                 </div>
                 <div class="grid gap-3 sm:grid-cols-3">
@@ -63,12 +63,10 @@
                 <table class="min-w-full divide-y divide-slate-100 text-left text-sm">
                     <thead class="bg-slate-50 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
                         <tr>
-                            <th class="px-5 py-4">SEVIMA ID</th>
+                            <th class="px-5 py-4">Kode</th>
                             <th class="px-5 py-4">Periode</th>
                             <th class="px-5 py-4">Tahun Ajar</th>
-                            <th class="px-5 py-4">Tanggal Akademik</th>
-                            <th class="px-5 py-4">UTS</th>
-                            <th class="px-5 py-4">UAS</th>
+                            <th class="px-5 py-4">Tanggal PMB</th>
                             <th class="px-5 py-4">Status</th>
                             <th class="px-5 py-4">Brosur</th>
                         </tr>
@@ -76,26 +74,16 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($periods as $period)
                             <tr class="align-top">
-                                <td class="px-5 py-4 text-slate-500">{{ $period->sevima_id ?: '-' }}</td>
+                                <td class="px-5 py-4 text-slate-500">{{ $period->code ?: '-' }}</td>
                                 <td class="px-5 py-4">
                                     <p class="font-bold text-slate-950">{{ $period->name }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ $period->short_name ?: '-' }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">ID: {{ $period->id }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-slate-600">{{ $period->academic_year ?: '-' }}</td>
                                 <td class="px-5 py-4 text-slate-600">
-                                    {{ $period->starts_at?->format('d M Y') ?: '-' }}
+                                    {{ $period->starts_at ?: '-' }}
                                     <span class="text-slate-300">s/d</span>
-                                    {{ $period->ends_at?->format('d M Y') ?: '-' }}
-                                </td>
-                                <td class="px-5 py-4 text-slate-600">
-                                    {{ $period->midterm_starts_at?->format('d M Y') ?: '-' }}
-                                    <span class="text-slate-300">s/d</span>
-                                    {{ $period->midterm_ends_at?->format('d M Y') ?: '-' }}
-                                </td>
-                                <td class="px-5 py-4 text-slate-600">
-                                    {{ $period->final_starts_at?->format('d M Y') ?: '-' }}
-                                    <span class="text-slate-300">s/d</span>
-                                    {{ $period->final_ends_at?->format('d M Y') ?: '-' }}
+                                    {{ $period->ends_at ?: '-' }}
                                 </td>
                                 <td class="px-5 py-4">
                                     <span class="{{ $period->is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-slate-100 text-slate-600 ring-slate-200' }} rounded-full px-3 py-1 text-xs font-bold ring-1">
@@ -112,7 +100,7 @@
                                             <p class="text-xs font-semibold text-slate-400">Belum ada brosur.</p>
                                         @endif
 
-                                        <form method="POST" action="{{ route('admin.pmb-catalog.periods.brochure.update', $period) }}" enctype="multipart/form-data" class="space-y-2">
+                                        <form method="POST" action="{{ route('admin.pmb-catalog.periods.brochure.update', $period->id) }}" enctype="multipart/form-data" class="space-y-2">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="q" value="{{ $search }}">
@@ -134,7 +122,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="px-5 py-10 text-center text-sm text-slate-500">
+                                <td colspan="6" class="px-5 py-10 text-center text-sm text-slate-500">
                                     Belum ada data periode.
                                 </td>
                             </tr>

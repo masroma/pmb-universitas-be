@@ -11,7 +11,7 @@
                     <p class="text-sm font-bold text-blue-700">Program Studi Dibuka</p>
                     <h2 class="mt-2 text-2xl font-bold tracking-[-0.03em] text-slate-950">Pendaftaran Dibuka</h2>
                     <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                        Menampilkan program studi yang dibuka per periode, jalur pendaftaran, dan sistem kuliah dari data lokal SEVIMA.
+                        Menampilkan program studi yang dibuka per periode, cabang kampus, jalur pendaftaran, dan kelas dari data PMB standalone.
                     </p>
                 </div>
                 <div class="rounded-2xl bg-blue-50 px-5 py-4 text-blue-700 ring-1 ring-blue-100">
@@ -87,23 +87,21 @@
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($records as $record)
-                            @php($payload = $record->raw_payload ?? [])
-                            @php($periodStatus = $periodStatusBySevimaId[$record->parent_sevima_id] ?? null)
                             <tr class="align-top">
                                 <td class="px-5 py-4">
-                                    <p class="font-bold text-slate-950">{{ data_get($payload, 'program_studi', $record->title) ?: '-' }}</p>
-                                    <p class="mt-1 text-xs text-slate-500">{{ data_get($payload, 'jenjang_program_studi', $record->subtitle) ?: '-' }}</p>
+                                    <p class="font-bold text-slate-950">{{ $record->study_program_name ?: '-' }}</p>
+                                    <p class="mt-1 text-xs text-slate-500">{{ $record->level ?: '-' }} · {{ $record->campus_name ?: '-' }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-slate-600">
-                                    <p class="font-semibold text-slate-800">{{ data_get($payload, 'nama_periode_pendaftaran') ?: '-' }}</p>
-                                    <p class="mt-1 text-xs">{{ data_get($payload, 'periode_akademik') ?: $record->period ?: '-' }}</p>
+                                    <p class="font-semibold text-slate-800">{{ $record->wave_name ?: $record->period_name }}</p>
+                                    <p class="mt-1 text-xs">{{ $record->academic_year ?: '-' }}</p>
                                 </td>
-                                <td class="px-5 py-4 text-slate-600">{{ data_get($payload, 'jalur_pendaftaran') ?: '-' }}</td>
-                                <td class="px-5 py-4 text-slate-600">{{ data_get($payload, 'sistem_kuliah') ?: '-' }}</td>
-                                <td class="px-5 py-4 text-slate-600">{{ data_get($payload, 'akreditasi') ?: '-' }}</td>
+                                <td class="px-5 py-4 text-slate-600">{{ $record->path_name ?: '-' }}</td>
+                                <td class="px-5 py-4 text-slate-600">{{ $record->class_name ?: '-' }}</td>
+                                <td class="px-5 py-4 text-slate-600">{{ $record->accreditation ?: '-' }}</td>
                                 <td class="px-5 py-4">
-                                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                                        {{ $periodStatus ?: ($record->is_active ? 'Aktif' : 'Nonaktif') }}
+                                    <span class="{{ $record->is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-slate-100 text-slate-600 ring-slate-200' }} rounded-full px-3 py-1 text-xs font-bold ring-1">
+                                        {{ $record->is_active ? 'Aktif' : 'Nonaktif' }}
                                     </span>
                                 </td>
                             </tr>

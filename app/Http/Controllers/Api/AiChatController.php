@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -27,7 +26,7 @@ class AiChatController extends Controller
                 ->acceptJson()
                 ->asJson()
                 ->post(config('services.ai_pmb.url'), $payload);
-        } catch (ConnectionException) {
+        } catch (\Throwable) {
             return response()->json([
                 'message' => 'Layanan AI PMB belum dapat dihubungi.',
             ], 502);

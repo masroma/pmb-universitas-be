@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Admin PMB',
                 'password' => Hash::make('password'),
+                'role' => 'super_admin',
             ],
         );
 
@@ -44,6 +45,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PmbLandingContentSeeder::class);
         $this->call(PmbInformationSectionSeeder::class);
         $this->call(TuitionFeeSeeder::class);
+        $this->call(StandalonePmbSeeder::class);
         $this->call(StudentPortalUserSeeder::class);
     }
 }

@@ -37,6 +37,7 @@
                     <h3 class="text-lg font-bold text-slate-950">Daftar Pendaftaran</h3>
                     <p class="mt-1 text-sm text-slate-500">Filter berdasarkan status atau cari nama, email, NIK, periode, dan prodi.</p>
                 </div>
+                <div class="flex flex-col gap-2 lg:flex-row">
                 <form method="GET" action="{{ route('admin.local-applications.index') }}" class="grid gap-2 sm:grid-cols-[13rem_16rem_auto]">
                     <select
                         name="status"
@@ -58,6 +59,10 @@
                         Filter
                     </button>
                 </form>
+                <a href="{{ route('admin.local-applications.export', request()->query()) }}" class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+                    Export CSV
+                </a>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -89,7 +94,7 @@
                                 </td>
                                 <td class="px-5 py-4 text-slate-600">
                                     <p class="font-semibold text-slate-800">{{ $application->study_program_name ?: '-' }}</p>
-                                    <p class="mt-1 text-xs">{{ $application->registration_period_name ?: '-' }}</p>
+                                    <p class="mt-1 text-xs">{{ $application->campus_name ?: 'Lokasi belum tersedia' }} · {{ $application->registration_period_name ?: '-' }}</p>
                                     <p class="mt-1 text-xs">{{ $application->registration_path_name ?: '-' }} / {{ $application->study_system_name ?: '-' }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-slate-600">

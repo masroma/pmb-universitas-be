@@ -2,36 +2,75 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Admin\PmbInformationSectionController as AdminPmbInformationSectionController;
 use App\Http\Controllers\Controller;
-use App\Models\CampusSetting;
-use App\Models\PmbBenefit;
-use App\Models\PmbInformationSection;
-use App\Models\PmbPeriod;
-use App\Models\PmbRegistrationFlow;
-use App\Models\PmbRegistrationPath;
-use App\Models\PmbSevimaRecord;
-use App\Models\PmbStudyProgram;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class AiPmbDataController extends Controller
 {
+    public function tuitionFees(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->registrationOptionRows()
+                ->map(fn ($row): array => [
+                    'id' => $row->tuition_fee_id,
+                    'periodId' => $row->period_id,
+                    'period' => [
+                        'id' => $row->period_id,
+                        'name' => $row->period_name,
+                        'academicYear' => $row->academic_year,
+                        'isActive' => (bool) $row->period_is_active,
+                    ],
+                    'programLevel' => $row->program_level,
+                    'campus' => $row->campus_name,
+                    'wave' => $row->wave_name,
+                    'studyProgramId' => $row->study_program_id,
+                    'studyProgram' => $row->study_program_name,
+                    'studyProgramDetail' => [
+                        'id' => $row->study_program_id,
+                        'level' => $row->program_level,
+                        'title' => $row->study_program_name,
+                        'accreditation' => $row->accreditation,
+                        'isActive' => (bool) $row->program_is_active,
+                    ],
+                    'registrationPath' => $row->path_name,
+                    'classType' => $row->class_name,
+                    'registrationFee' => $row->registration_fee,
+                    'installmentCount' => $row->installment_count,
+                    'installmentAmount' => $row->installment_amount,
+                    'semesterFee' => $row->semester_fee,
+                    'totalFirstPayment' => $row->total_first_payment,
+                    'currency' => $row->currency,
+                    'notes' => $row->tuition_notes,
+                ])
+                ->values()
+                ->all(),
+        ]);
+    }
+
     public function registrationPaths(): JsonResponse
     {
         return response()->json([
-            'data' => PmbRegistrationPath::query()
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
+            'data' => DB::table('admission_paths')
+                ->join('institutions', 'institutions.id', '=', 'admission_paths.institution_id')
+                ->where('institutions.is_active', true)
+                ->where('admission_paths.is_active', true)
+                ->orderBy('admission_paths.sort_order')
+                ->orderBy('admission_paths.name')
+                ->select('admission_paths.*', 'institutions.name as institution_name')
                 ->get()
-                ->map(fn (PmbRegistrationPath $path): array => [
+                ->map(fn ($path): array => [
                     'id' => $path->id,
-                    'title' => $path->title,
-                    'period' => $path->period,
-                    'fee' => $path->fee,
-                    'startsAt' => $path->starts_at?->toDateString(),
-                    'endsAt' => $path->ends_at?->toDateString(),
+                    'institution' => $path->institution_name,
+                    'code' => $path->code,
+                    'title' => $path->name,
+                    'description' => $path->description,
+                    'period' => null,
+                    'fee' => $this->rupiah((int) $path->registration_fee),
+                    'registrationFee' => (int) $path->registration_fee,
+                    'startsAt' => null,
+                    'endsAt' => null,
                 ])
                 ->all(),
         ]);
@@ -40,17 +79,27 @@ class AiPmbDataController extends Controller
     public function studyPrograms(): JsonResponse
     {
         return response()->json([
-            'data' => PmbStudyProgram::query()
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('level')
-                ->orderBy('title')
+            'data' => DB::table('study_programs')
+                ->leftJoin('faculties', 'faculties.id', '=', 'study_programs.faculty_id')
+                ->join('institutions', 'institutions.id', '=', 'study_programs.institution_id')
+                ->where('institutions.is_active', true)
+                ->where('study_programs.is_active', true)
+                ->orderBy('study_programs.sort_order')
+                ->orderBy('study_programs.level')
+                ->orderBy('study_programs.name')
+                ->select('study_programs.*', 'faculties.name as faculty_name', 'institutions.name as institution_name')
                 ->get()
-                ->map(fn (PmbStudyProgram $program): array => [
+                ->map(fn ($program): array => [
                     'id' => $program->id,
+                    'institution' => $program->institution_name,
+                    'faculty' => $program->faculty_name,
+                    'code' => $program->code,
                     'level' => $program->level,
-                    'title' => $program->title,
+                    'title' => $program->name,
+                    'degree' => $program->degree,
                     'accreditation' => $program->accreditation,
+                    'description' => $program->description,
+                    'campuses' => $this->programCampuses((int) $program->id),
                 ])
                 ->all(),
         ]);
@@ -60,44 +109,35 @@ class AiPmbDataController extends Controller
     {
         return response()->json([
             'data' => [
-                'paths' => PmbRegistrationPath::query()
-                    ->where('is_active', true)
-                    ->where('title', 'like', '%beasiswa%')
-                    ->orderBy('sort_order')
-                    ->orderBy('id')
-                    ->get()
-                    ->map(fn (PmbRegistrationPath $path): array => [
-                        'id' => $path->id,
-                        'title' => $path->title,
-                        'period' => $path->period,
-                        'fee' => $path->fee,
-                        'startsAt' => $path->starts_at?->toDateString(),
-                        'endsAt' => $path->ends_at?->toDateString(),
-                    ])
-                    ->all(),
-                'benefits' => PmbBenefit::query()
+                'paths' => DB::table('admission_paths')
                     ->where('is_active', true)
                     ->where(function ($query): void {
-                        $query
-                            ->where('title', 'like', '%beasiswa%')
-                            ->orWhere('emphasis', 'like', '%beasiswa%')
+                        $query->where('name', 'like', '%beasiswa%')
                             ->orWhere('description', 'like', '%beasiswa%');
                     })
                     ->orderBy('sort_order')
-                    ->orderBy('id')
                     ->get()
-                    ->map(fn (PmbBenefit $benefit): array => [
-                        'id' => $benefit->id,
-                        'title' => $benefit->title,
-                        'emphasis' => $benefit->emphasis,
-                        'description' => $benefit->description,
+                    ->map(fn ($path): array => [
+                        'id' => $path->id,
+                        'title' => $path->name,
+                        'description' => $path->description,
+                        'fee' => $this->rupiah((int) $path->registration_fee),
                     ])
                     ->all(),
-                'information' => $this->informationSections()
-                    ->filter(fn (PmbInformationSection $section): bool => $this->containsKeyword($section, 'beasiswa'))
-                    ->map(fn (PmbInformationSection $section): array => $this->formatInformationSection($section))
-                    ->values()
+                'scholarships' => DB::table('scholarships')
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn ($scholarship): array => [
+                        'id' => $scholarship->id,
+                        'code' => $scholarship->code,
+                        'title' => $scholarship->name,
+                        'description' => $scholarship->description,
+                        'requirements' => $this->decodeJson($scholarship->requirements),
+                    ])
                     ->all(),
+                'information' => $this->contentBlocks('beasiswa')->all(),
             ],
         ]);
     }
@@ -105,12 +145,9 @@ class AiPmbDataController extends Controller
     public function pmbContent(): JsonResponse
     {
         return response()->json([
-            'data' => $this->informationSections()
-                ->groupBy(fn (PmbInformationSection $section): string => $section->program_level ?: 'Umum')
-                ->map(fn (Collection $sections): array => $sections
-                    ->map(fn (PmbInformationSection $section): array => $this->formatInformationSection($section))
-                    ->values()
-                    ->all())
+            'data' => $this->contentBlocks()
+                ->groupBy('categoryLabel')
+                ->map(fn (Collection $sections): array => $sections->values()->all())
                 ->all(),
         ]);
     }
@@ -118,34 +155,52 @@ class AiPmbDataController extends Controller
     public function classes(): JsonResponse
     {
         return response()->json([
-            'data' => $this->informationSections('kelas')
-                ->map(fn (PmbInformationSection $section): array => $this->formatInformationSection($section))
-                ->values()
+            'data' => DB::table('class_types')
+                ->join('institutions', 'institutions.id', '=', 'class_types.institution_id')
+                ->where('institutions.is_active', true)
+                ->where('class_types.is_active', true)
+                ->orderBy('class_types.sort_order')
+                ->select('class_types.*', 'institutions.name as institution_name')
+                ->get()
+                ->map(fn ($classType): array => [
+                    'id' => $classType->id,
+                    'institution' => $classType->institution_name,
+                    'code' => $classType->code,
+                    'title' => $classType->name,
+                    'scheduleLabel' => $classType->schedule_label,
+                    'body' => $classType->description,
+                    'items' => array_values(array_filter([
+                        $classType->schedule_label,
+                        ((bool) $classType->is_online) ? 'Mendukung pembelajaran online/hybrid' : null,
+                    ])),
+                ])
                 ->all(),
         ]);
     }
 
     public function campusData(): JsonResponse
     {
-        $settings = CampusSetting::query()->firstOrCreate(
-            ['id' => 1],
-            ['campus_name' => config('app.name')],
-        );
+        $institutions = DB::table('institutions')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(fn ($institution): array => [
+                'id' => $institution->id,
+                'code' => $institution->code,
+                'campusName' => $institution->name,
+                'shortName' => $institution->short_name,
+                'website' => $institution->website,
+                'description' => $institution->description,
+                'campuses' => $this->campuses((int) $institution->id),
+            ])
+            ->all();
 
         return response()->json([
             'data' => [
-                'campusName' => $settings->campus_name,
-                'address' => $settings->address,
-                'website' => $settings->website,
-                'phone' => $settings->phone,
-                'fax' => $settings->fax,
-                'logoUrl' => $settings->logo_url,
-                'heroImageUrl' => $settings->hero_image_url,
-                'socialMedia' => $settings->social_media,
-                'locations' => $this->informationSections('lokasi-kampus')
-                    ->map(fn (PmbInformationSection $section): array => $this->formatInformationSection($section))
-                    ->values()
-                    ->all(),
+                'institutions' => $institutions,
+                'campusName' => $institutions[0]['campusName'] ?? config('app.name'),
+                'website' => $institutions[0]['website'] ?? null,
+                'locations' => collect($institutions)->flatMap(fn (array $institution): array => $institution['campuses'])->values()->all(),
             ],
         ]);
     }
@@ -153,25 +208,20 @@ class AiPmbDataController extends Controller
     public function registrationFlows(): JsonResponse
     {
         return response()->json([
-            'data' => PmbRegistrationFlow::query()
-                ->with(['steps' => fn ($query) => $query
-                    ->where('is_active', true)
-                    ->orderBy('sort_order')
-                    ->orderBy('id')])
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (PmbRegistrationFlow $flow): array => [
-                    'id' => $flow->id,
-                    'title' => $flow->title,
-                    'description' => $flow->description,
-                    'steps' => $flow->steps->map(fn ($step): array => [
-                        'id' => $step->id,
-                        'title' => $step->title,
-                        'description' => $step->description,
-                    ])->values()->all(),
+            'data' => $this->contentBlocks('alur-pendaftaran')
+                ->map(fn (array $section): array => [
+                    'id' => $section['id'],
+                    'title' => $section['title'],
+                    'description' => $section['body'],
+                    'steps' => collect($section['items'])
+                        ->map(fn (string $item, int $index): array => [
+                            'id' => $index + 1,
+                            'title' => $item,
+                            'description' => null,
+                        ])
+                        ->all(),
                 ])
+                ->values()
                 ->all(),
         ]);
     }
@@ -180,25 +230,42 @@ class AiPmbDataController extends Controller
     {
         return response()->json([
             'data' => [
-                'academicPeriods' => PmbPeriod::query()
-                    ->where('is_active', true)
-                    ->orderByDesc('sevima_id')
-                    ->orderByDesc('id')
+                'academicPeriods' => DB::table('pmb_admission_periods')
+                    ->join('institutions', 'institutions.id', '=', 'pmb_admission_periods.institution_id')
+                    ->where('institutions.is_active', true)
+                    ->where('pmb_admission_periods.is_active', true)
+                    ->orderByDesc('pmb_admission_periods.starts_at')
+                    ->select('pmb_admission_periods.*', 'institutions.name as institution_name')
                     ->get()
-                    ->map(fn (PmbPeriod $period): array => [
+                    ->map(fn ($period): array => [
                         'id' => $period->id,
-                        'sevimaId' => $period->sevima_id,
+                        'code' => $period->code,
+                        'institution' => $period->institution_name,
                         'name' => $period->name,
-                        'shortName' => $period->short_name,
                         'academicYear' => $period->academic_year,
-                        'startsAt' => $period->starts_at?->toDateString(),
-                        'endsAt' => $period->ends_at?->toDateString(),
+                        'startsAt' => $period->starts_at,
+                        'endsAt' => $period->ends_at,
                         'brochureUrl' => $period->brochure_url,
                     ])
                     ->all(),
-                'registrationPeriods' => $this->activeRegistrationPeriods()
-                    ->map(fn (PmbSevimaRecord $record): array => $this->formatRegistrationPeriod($record))
-                    ->values()
+                'registrationPeriods' => DB::table('pmb_waves')
+                    ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_waves.admission_period_id')
+                    ->where('pmb_waves.is_active', true)
+                    ->where('pmb_admission_periods.is_active', true)
+                    ->orderBy('pmb_waves.sort_order')
+                    ->select('pmb_waves.*', 'pmb_admission_periods.name as period_name', 'pmb_admission_periods.academic_year')
+                    ->get()
+                    ->map(fn ($wave): array => [
+                        'id' => $wave->id,
+                        'name' => $wave->name,
+                        'academicPeriodId' => $wave->admission_period_id,
+                        'academicPeriodName' => $wave->period_name,
+                        'academicYear' => $wave->academic_year,
+                        'status' => $this->periodStatus($wave->starts_at, $wave->ends_at),
+                        'period' => trim(($wave->starts_at ?: '').' - '.($wave->ends_at ?: '')),
+                        'startsAt' => $wave->starts_at,
+                        'endsAt' => $wave->ends_at,
+                    ])
                     ->all(),
             ],
         ]);
@@ -206,32 +273,33 @@ class AiPmbDataController extends Controller
 
     public function admissionRequirements(): JsonResponse
     {
-        return $this->informationCategoryResponse('syarat');
+        return $this->contentResponse('syarat');
     }
 
     public function curriculum(): JsonResponse
     {
-        return $this->informationCategoryResponse('kurikulum');
+        return $this->contentResponse('kurikulum');
     }
 
     public function pmbContacts(): JsonResponse
     {
-        $settings = CampusSetting::query()->firstOrCreate(
-            ['id' => 1],
-            ['campus_name' => config('app.name')],
-        );
-
         return response()->json([
             'data' => [
-                'campusName' => $settings->campus_name,
-                'website' => $settings->website,
-                'phone' => $settings->phone,
-                'fax' => $settings->fax,
-                'socialMedia' => $settings->social_media,
-                'links' => $this->informationSections('kontak')
-                    ->map(fn (PmbInformationSection $section): array => $this->formatInformationSection($section))
-                    ->values()
+                'institutions' => DB::table('institutions')
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn ($institution): array => [
+                        'id' => $institution->id,
+                        'campusName' => $institution->name,
+                        'website' => $institution->website,
+                        'contacts' => collect($this->campuses((int) $institution->id))
+                            ->flatMap(fn (array $campus): array => $campus['contacts'])
+                            ->values()
+                            ->all(),
+                    ])
                     ->all(),
+                'links' => $this->contentBlocks('kontak')->all(),
             ],
         ]);
     }
@@ -239,20 +307,22 @@ class AiPmbDataController extends Controller
     public function brochure(): JsonResponse
     {
         return response()->json([
-            'data' => PmbPeriod::query()
-                ->whereNotNull('brochure_path')
-                ->where('is_active', true)
-                ->orderByDesc('sevima_id')
-                ->orderByDesc('id')
+            'data' => DB::table('pmb_admission_periods')
+                ->join('institutions', 'institutions.id', '=', 'pmb_admission_periods.institution_id')
+                ->where('institutions.is_active', true)
+                ->where('pmb_admission_periods.is_active', true)
+                ->whereNotNull('pmb_admission_periods.brochure_url')
+                ->orderByDesc('pmb_admission_periods.starts_at')
+                ->select('pmb_admission_periods.*', 'institutions.name as institution_name')
                 ->get()
-                ->map(fn (PmbPeriod $period): array => [
+                ->map(fn ($period): array => [
                     'id' => $period->id,
-                    'sevimaId' => $period->sevima_id,
+                    'code' => $period->code,
+                    'institution' => $period->institution_name,
                     'name' => $period->name,
-                    'shortName' => $period->short_name,
                     'academicYear' => $period->academic_year,
-                    'startsAt' => $period->starts_at?->toDateString(),
-                    'endsAt' => $period->ends_at?->toDateString(),
+                    'startsAt' => $period->starts_at,
+                    'endsAt' => $period->ends_at,
                     'url' => $period->brochure_url,
                 ])
                 ->all(),
@@ -261,74 +331,51 @@ class AiPmbDataController extends Controller
 
     public function campusBenefits(): JsonResponse
     {
-        return response()->json([
-            'data' => PmbBenefit::query()
-                ->where('is_active', true)
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get()
-                ->map(fn (PmbBenefit $benefit): array => [
-                    'id' => $benefit->id,
-                    'icon' => $benefit->icon,
-                    'title' => $benefit->title,
-                    'emphasis' => $benefit->emphasis,
-                    'description' => $benefit->description,
-                    'isItalic' => $benefit->is_italic,
-                ])
-                ->all(),
-        ]);
+        return $this->contentResponse('keunggulan');
     }
 
     public function registrationOptions(): JsonResponse
     {
-        $activeRegistrationPeriods = $this->activeRegistrationPeriods();
-        $activeRegistrationPeriodIds = $activeRegistrationPeriods
-            ->pluck('sevima_id')
-            ->filter()
-            ->map(fn ($id): string => (string) $id)
-            ->unique()
-            ->values();
-        $activeAcademicPeriodIds = $activeRegistrationPeriods
-            ->map(fn (PmbSevimaRecord $record): ?string => $this->firstFilled($record->raw_payload ?? [], ['periode_akademik', 'id_periode', 'id_periode_akademik']))
-            ->filter()
-            ->unique()
-            ->values();
+        $rows = $this->registrationOptionRows();
 
         return response()->json([
             'data' => [
-                'academicPeriods' => PmbPeriod::query()
-                    ->where('is_active', true)
-                    ->whereIn('sevima_id', $activeAcademicPeriodIds)
-                    ->orderByDesc('sevima_id')
-                    ->get()
-                    ->map(fn (PmbPeriod $period): array => [
-                        'id' => $period->sevima_id,
-                        'name' => $period->name,
-                        'academicYear' => $period->academic_year,
+                'academicPeriods' => $rows
+                    ->map(fn ($row): array => [
+                        'id' => $row->period_id,
+                        'name' => $row->period_name,
+                        'academicYear' => $row->academic_year,
                     ])
+                    ->unique('id')
                     ->values()
                     ->all(),
-                'registrationPeriods' => $activeRegistrationPeriods
-                    ->map(fn (PmbSevimaRecord $record): array => $this->formatRegistrationPeriod($record))
+                'registrationPeriods' => $rows
+                    ->map(fn ($row): array => [
+                        'id' => $row->wave_id,
+                        'name' => $row->wave_name,
+                        'academicPeriodId' => $row->period_id,
+                        'startsAt' => $row->wave_starts_at,
+                        'endsAt' => $row->wave_ends_at,
+                    ])
+                    ->unique('id')
                     ->values()
                     ->all(),
-                'programOptions' => PmbSevimaRecord::query()
-                    ->where('entity_type', 'program-studi-dibuka')
-                    ->where('is_active', true)
-                    ->whereIn('parent_sevima_id', $activeRegistrationPeriodIds)
-                    ->orderBy('parent_sevima_id')
-                    ->orderBy('title')
-                    ->get()
-                    ->map(fn (PmbSevimaRecord $record): array => [
-                        'id' => $record->id,
-                        'registrationPeriodId' => $record->parent_sevima_id,
-                        'studyProgramId' => $this->firstFilled($record->raw_payload ?? [], ['id_program_studi', 'kode_program_studi']),
-                        'studyProgramName' => $record->title ?: $this->firstFilled($record->raw_payload ?? [], ['program_studi', 'nama_program_studi', 'nama_prodi']),
-                        'registrationPathId' => $this->firstFilled($record->raw_payload ?? [], ['id_jalur_pendaftaran', 'kode_jalur_pendaftaran']),
-                        'registrationPathName' => $this->firstFilled($record->raw_payload ?? [], ['jalur_pendaftaran', 'nama_jalur_pendaftaran']),
-                        'studySystemId' => $this->firstFilled($record->raw_payload ?? [], ['id_sistem_kuliah', 'kode_sistem_kuliah']),
-                        'studySystemName' => $this->firstFilled($record->raw_payload ?? [], ['sistem_kuliah', 'nama_sistem_kuliah']),
-                        'fee' => $record->amount,
+                'programOptions' => $rows
+                    ->map(fn ($row): array => [
+                        'id' => $row->registration_option_id,
+                        'registrationPeriodId' => $row->wave_id,
+                        'registrationPeriodName' => $row->wave_name,
+                        'campusId' => $row->campus_id,
+                        'campusName' => $row->campus_name,
+                        'studyProgramId' => $row->study_program_id,
+                        'studyProgramName' => $row->study_program_name,
+                        'programLevel' => $row->program_level,
+                        'registrationPathId' => $row->path_id,
+                        'registrationPathName' => $row->path_name,
+                        'studySystemId' => $row->class_type_id,
+                        'studySystemName' => $row->class_name,
+                        'fee' => $row->registration_fee,
+                        'semesterFee' => $row->semester_fee,
                     ])
                     ->values()
                     ->all(),
@@ -336,102 +383,182 @@ class AiPmbDataController extends Controller
         ]);
     }
 
-    /**
-     * @return Collection<int, PmbInformationSection>
-     */
-    private function informationSections(?string $category = null): Collection
-    {
-        return PmbInformationSection::query()
-            ->where('is_active', true)
-            ->when($category, fn ($query) => $query->where('category', $category))
-            ->orderBy('program_level')
-            ->orderBy('category')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get();
-    }
-
-    private function formatInformationSection(PmbInformationSection $section): array
-    {
-        return [
-            'id' => $section->id,
-            'programLevel' => $section->program_level ?: 'Umum',
-            'category' => $section->category,
-            'categoryLabel' => AdminPmbInformationSectionController::CATEGORIES[$section->category] ?? $section->category,
-            'title' => $section->title,
-            'subtitle' => $section->subtitle,
-            'body' => $section->body,
-            'items' => $section->items ?? [],
-        ];
-    }
-
-    private function informationCategoryResponse(string $category): JsonResponse
+    private function contentResponse(string $category): JsonResponse
     {
         return response()->json([
-            'data' => $this->informationSections($category)
-                ->map(fn (PmbInformationSection $section): array => $this->formatInformationSection($section))
-                ->values()
-                ->all(),
+            'data' => $this->contentBlocks($category)->values()->all(),
         ]);
     }
 
-    /**
-     * @return Collection<int, PmbSevimaRecord>
-     */
-    private function activeRegistrationPeriods(): Collection
+    private function contentBlocks(?string $category = null): Collection
     {
-        $today = now()->toDateString();
+        return DB::table('pmb_content_blocks')
+            ->join('institutions', 'institutions.id', '=', 'pmb_content_blocks.institution_id')
+            ->leftJoin('campuses', 'campuses.id', '=', 'pmb_content_blocks.campus_id')
+            ->leftJoin('study_programs', 'study_programs.id', '=', 'pmb_content_blocks.study_program_id')
+            ->where('institutions.is_active', true)
+            ->where('pmb_content_blocks.is_active', true)
+            ->when($category, fn ($query) => $query->where('pmb_content_blocks.category', $category))
+            ->orderBy('pmb_content_blocks.category')
+            ->orderBy('pmb_content_blocks.sort_order')
+            ->select(
+                'pmb_content_blocks.*',
+                'institutions.name as institution_name',
+                'campuses.name as campus_name',
+                'study_programs.name as study_program_name',
+            )
+            ->get()
+            ->map(fn ($section): array => [
+                'id' => $section->id,
+                'institution' => $section->institution_name,
+                'campus' => $section->campus_name,
+                'studyProgram' => $section->study_program_name,
+                'programLevel' => 'Umum',
+                'category' => $section->category,
+                'categoryLabel' => str($section->category)->replace('-', ' ')->title()->toString(),
+                'title' => $section->title,
+                'subtitle' => $section->subtitle,
+                'body' => $section->body,
+                'items' => $this->decodeJson($section->items),
+            ]);
+    }
 
-        return PmbSevimaRecord::query()
-            ->where('entity_type', 'periode-pendaftaran')
+    private function campuses(int $institutionId): array
+    {
+        return DB::table('campuses')
+            ->where('institution_id', $institutionId)
             ->where('is_active', true)
-            ->where(function ($query) use ($today): void {
-                $query->whereNull('starts_at')->orWhereDate('starts_at', '<=', $today);
+            ->orderByDesc('is_main')
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($campus): array => [
+                'id' => $campus->id,
+                'code' => $campus->code,
+                'name' => $campus->name,
+                'city' => $campus->city,
+                'province' => $campus->province,
+                'address' => $campus->address,
+                'mapsUrl' => $campus->maps_url,
+                'isMain' => (bool) $campus->is_main,
+                'contacts' => DB::table('campus_contacts')
+                    ->where('campus_id', $campus->id)
+                    ->orderByDesc('is_primary')
+                    ->orderBy('sort_order')
+                    ->get()
+                    ->map(fn ($contact): array => [
+                        'type' => $contact->type,
+                        'label' => $contact->label,
+                        'value' => $contact->value,
+                        'isPrimary' => (bool) $contact->is_primary,
+                    ])
+                    ->all(),
+            ])
+            ->all();
+    }
+
+    private function programCampuses(int $studyProgramId): array
+    {
+        return DB::table('campus_study_programs')
+            ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
+            ->where('campus_study_programs.study_program_id', $studyProgramId)
+            ->where('campus_study_programs.is_open', true)
+            ->where('campuses.is_active', true)
+            ->orderBy('campuses.sort_order')
+            ->get()
+            ->map(fn ($campus): array => [
+                'id' => $campus->id,
+                'code' => $campus->code,
+                'name' => $campus->name,
+                'city' => $campus->city,
+            ])
+            ->all();
+    }
+
+    private function registrationOptionRows(): Collection
+    {
+        return DB::table('pmb_registration_options')
+            ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_registration_options.admission_period_id')
+            ->leftJoin('pmb_waves', 'pmb_waves.id', '=', 'pmb_registration_options.wave_id')
+            ->join('campus_study_programs', 'campus_study_programs.id', '=', 'pmb_registration_options.campus_study_program_id')
+            ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
+            ->join('study_programs', 'study_programs.id', '=', 'campus_study_programs.study_program_id')
+            ->join('institutions', 'institutions.id', '=', 'study_programs.institution_id')
+            ->join('admission_paths', 'admission_paths.id', '=', 'pmb_registration_options.admission_path_id')
+            ->leftJoin('class_types', 'class_types.id', '=', 'pmb_registration_options.class_type_id')
+            ->leftJoin('tuition_fee_schemes', function ($join): void {
+                $join->on('tuition_fee_schemes.registration_option_id', '=', 'pmb_registration_options.id')
+                    ->where('tuition_fee_schemes.is_active', true);
             })
-            ->where(function ($query) use ($today): void {
-                $query->whereNull('ends_at')->orWhereDate('ends_at', '>=', $today);
-            })
-            ->orderByDesc('sevima_id')
+            ->where('institutions.is_active', true)
+            ->where('campuses.is_active', true)
+            ->where('study_programs.is_active', true)
+            ->where('pmb_admission_periods.is_active', true)
+            ->where('pmb_registration_options.is_active', true)
+            ->orderBy('pmb_admission_periods.starts_at')
+            ->orderBy('pmb_waves.sort_order')
+            ->orderBy('campuses.sort_order')
+            ->orderBy('study_programs.sort_order')
+            ->select([
+                'pmb_registration_options.id as registration_option_id',
+                'pmb_admission_periods.id as period_id',
+                'pmb_admission_periods.name as period_name',
+                'pmb_admission_periods.academic_year',
+                'pmb_admission_periods.is_active as period_is_active',
+                'pmb_waves.id as wave_id',
+                'pmb_waves.name as wave_name',
+                'pmb_waves.starts_at as wave_starts_at',
+                'pmb_waves.ends_at as wave_ends_at',
+                'campuses.id as campus_id',
+                'campuses.name as campus_name',
+                'study_programs.id as study_program_id',
+                'study_programs.level as program_level',
+                'study_programs.name as study_program_name',
+                'study_programs.accreditation',
+                'study_programs.is_active as program_is_active',
+                'admission_paths.id as path_id',
+                'admission_paths.name as path_name',
+                'class_types.id as class_type_id',
+                'class_types.name as class_name',
+                'tuition_fee_schemes.id as tuition_fee_id',
+                'tuition_fee_schemes.registration_fee',
+                'tuition_fee_schemes.installment_count',
+                'tuition_fee_schemes.installment_amount',
+                'tuition_fee_schemes.semester_fee',
+                'tuition_fee_schemes.total_first_payment',
+                'tuition_fee_schemes.currency',
+                'tuition_fee_schemes.notes as tuition_notes',
+            ])
             ->get();
     }
 
-    private function formatRegistrationPeriod(PmbSevimaRecord $record): array
+    private function decodeJson(?string $value): array
     {
-        return [
-            'id' => $record->sevima_id,
-            'name' => $record->title ?: $record->period ?: $record->sevima_id,
-            'academicPeriodId' => $this->firstFilled($record->raw_payload ?? [], ['periode_akademik', 'id_periode', 'id_periode_akademik']),
-            'status' => $record->status,
-            'period' => $record->period,
-            'startsAt' => $record->starts_at?->toDateString(),
-            'endsAt' => $record->ends_at?->toDateString(),
-        ];
-    }
-
-    private function containsKeyword(PmbInformationSection $section, string $keyword): bool
-    {
-        $haystack = strtolower(implode(' ', array_filter([
-            $section->program_level,
-            $section->category,
-            $section->title,
-            $section->subtitle,
-            $section->body,
-            ...($section->items ?? []),
-        ])));
-
-        return str_contains($haystack, strtolower($keyword));
-    }
-
-    private function firstFilled(array $item, array $keys): ?string
-    {
-        foreach ($keys as $key) {
-            $value = data_get($item, $key);
-
-            if (filled($value) && ! is_array($value)) {
-                return (string) $value;
-            }
+        if (! $value) {
+            return [];
         }
 
-        return null;
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function periodStatus(?string $startsAt, ?string $endsAt): string
+    {
+        $today = now()->toDateString();
+
+        if ($startsAt && $today < $startsAt) {
+            return 'upcoming';
+        }
+
+        if ($endsAt && $today > $endsAt) {
+            return 'closed';
+        }
+
+        return 'open';
+    }
+
+    private function rupiah(int $amount): string
+    {
+        return 'Rp '.number_format($amount, 0, ',', '.');
     }
 }

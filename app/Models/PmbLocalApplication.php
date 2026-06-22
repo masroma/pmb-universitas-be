@@ -21,6 +21,14 @@ class PmbLocalApplication extends Model
         'registration_period_id',
         'registration_period_name',
         'program_option_id',
+        'pmb_admission_period_id',
+        'pmb_wave_id',
+        'pmb_registration_option_id',
+        'campus_id',
+        'campus_name',
+        'standalone_study_program_id',
+        'admission_path_id',
+        'class_type_id',
         'study_program_id',
         'study_program_name',
         'registration_path_id',
@@ -39,6 +47,7 @@ class PmbLocalApplication extends Model
         'province',
         'country',
         'applicant_note',
+        'registration_snapshot',
         'submitted_at',
         'reviewed_at',
         'reviewed_by',
@@ -49,6 +58,7 @@ class PmbLocalApplication extends Model
     {
         return [
             'birth_date' => 'date',
+            'registration_snapshot' => 'array',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
         ];

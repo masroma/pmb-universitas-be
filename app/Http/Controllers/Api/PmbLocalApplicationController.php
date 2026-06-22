@@ -5,95 +5,54 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\PmbLocalApplication;
 use App\Models\PmbLocalApplicationDocument;
-use App\Models\PmbPeriod;
-use App\Models\PmbSevimaRecord;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class PmbLocalApplicationController extends Controller
 {
     public function options(): JsonResponse
     {
-        $activeRegistrationPeriods = $this->activeRegistrationPeriods();
-        $activeRegistrationPeriodIds = $activeRegistrationPeriods
-            ->pluck('sevima_id')
-            ->filter()
-            ->map(fn ($id): string => (string) $id)
-            ->unique()
-            ->values();
-        $activeAcademicPeriodIds = $activeRegistrationPeriods
-            ->map(fn (PmbSevimaRecord $record): ?string => $this->firstFilled($record->raw_payload ?? [], ['periode_akademik', 'id_periode', 'id_periode_akademik']))
-            ->filter()
-            ->unique()
-            ->values();
-
         return response()->json([
             'data' => [
-                'academicPeriods' => PmbPeriod::query()
+                'academicPeriods' => DB::table('pmb_admission_periods')
                     ->where('is_active', true)
-                    ->whereIn('sevima_id', $activeAcademicPeriodIds)
-                    ->orderByDesc('sevima_id')
+                    ->orderByDesc('starts_at')
                     ->get()
-                    ->map(fn (PmbPeriod $period): array => [
-                        'id' => $period->sevima_id,
+                    ->map(fn ($period): array => [
+                        'id' => $period->id,
                         'name' => $period->name,
                         'academicYear' => $period->academic_year,
                     ])
                     ->values(),
-                'registrationPeriods' => $activeRegistrationPeriods
-                    ->map(fn (PmbSevimaRecord $record): array => [
-                        'id' => $record->sevima_id,
-                        'name' => $record->title ?: $record->period ?: $record->sevima_id,
-                        'academicPeriodId' => $this->firstFilled($record->raw_payload ?? [], ['periode_akademik', 'id_periode', 'id_periode_akademik']),
-                        'status' => $record->status,
-                        'startsAt' => $record->starts_at?->toDateString(),
-                        'endsAt' => $record->ends_at?->toDateString(),
+                'registrationPeriods' => DB::table('pmb_waves')
+                    ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_waves.admission_period_id')
+                    ->where('pmb_waves.is_active', true)
+                    ->where('pmb_admission_periods.is_active', true)
+                    ->orderBy('pmb_waves.sort_order')
+                    ->get([
+                        'pmb_waves.id',
+                        'pmb_waves.name',
+                        'pmb_waves.starts_at',
+                        'pmb_waves.ends_at',
+                        'pmb_waves.admission_period_id',
+                    ])
+                    ->map(fn ($wave): array => [
+                        'id' => $wave->id,
+                        'name' => $wave->name,
+                        'academicPeriodId' => $wave->admission_period_id,
+                        'status' => $this->periodStatus($wave->starts_at, $wave->ends_at),
+                        'startsAt' => $wave->starts_at,
+                        'endsAt' => $wave->ends_at,
                     ])
                     ->values(),
-                'programOptions' => PmbSevimaRecord::query()
-                    ->where('entity_type', 'program-studi-dibuka')
-                    ->where('is_active', true)
-                    ->whereIn('parent_sevima_id', $activeRegistrationPeriodIds)
-                    ->orderBy('parent_sevima_id')
-                    ->orderBy('title')
-                    ->get()
-                    ->map(fn (PmbSevimaRecord $record): array => [
-                        'id' => $record->id,
-                        'registrationPeriodId' => $record->parent_sevima_id,
-                        'studyProgramId' => $this->firstFilled($record->raw_payload ?? [], ['id_program_studi', 'kode_program_studi']),
-                        'studyProgramName' => $record->title ?: $this->firstFilled($record->raw_payload ?? [], ['program_studi', 'nama_program_studi', 'nama_prodi']),
-                        'registrationPathId' => $this->firstFilled($record->raw_payload ?? [], ['id_jalur_pendaftaran', 'kode_jalur_pendaftaran']),
-                        'registrationPathName' => $this->firstFilled($record->raw_payload ?? [], ['jalur_pendaftaran', 'nama_jalur_pendaftaran']),
-                        'studySystemId' => $this->firstFilled($record->raw_payload ?? [], ['id_sistem_kuliah', 'kode_sistem_kuliah']),
-                        'studySystemName' => $this->firstFilled($record->raw_payload ?? [], ['sistem_kuliah', 'nama_sistem_kuliah']),
-                        'fee' => $record->amount,
-                    ])
+                'programOptions' => $this->registrationOptionRows()
+                    ->map(fn ($option): array => $this->registrationOptionPayload($option))
                     ->values(),
             ],
         ]);
-    }
-
-    /**
-     * @return Collection<int, PmbSevimaRecord>
-     */
-    private function activeRegistrationPeriods(): Collection
-    {
-        $today = now()->toDateString();
-
-        return PmbSevimaRecord::query()
-            ->where('entity_type', 'periode-pendaftaran')
-            ->where('is_active', true)
-            ->where(function ($query) use ($today): void {
-                $query->whereNull('starts_at')->orWhereDate('starts_at', '<=', $today);
-            })
-            ->where(function ($query) use ($today): void {
-                $query->whereNull('ends_at')->orWhereDate('ends_at', '>=', $today);
-            })
-            ->orderByDesc('sevima_id')
-            ->get();
     }
 
     public function show(Request $request): JsonResponse
@@ -132,15 +91,14 @@ class PmbLocalApplicationController extends Controller
         }
 
         $payload = $request->validate($this->validationRules(false));
-        $programOption = PmbSevimaRecord::query()->where('entity_type', 'program-studi-dibuka')->find($payload['program_option_id'] ?? null);
-        $registrationPeriod = PmbSevimaRecord::query()
-            ->where('entity_type', 'periode-pendaftaran')
-            ->where('sevima_id', $payload['registration_period_id'] ?? null)
-            ->first();
-        $academicPeriod = PmbPeriod::query()->where('sevima_id', $payload['academic_period_id'] ?? null)->first();
+        $programOption = $this->registrationOption((int) ($payload['program_option_id'] ?? 0));
+
+        if (! $programOption) {
+            return response()->json(['message' => 'Pilihan program tidak tersedia.'], 422);
+        }
 
         $application->fill([
-            ...$this->applicationFields($payload, $programOption, $registrationPeriod, $academicPeriod),
+            ...$this->applicationFields($payload, $programOption),
             'status' => PmbLocalApplication::STATUS_DRAFT,
             'review_note' => null,
         ])->save();
@@ -169,12 +127,14 @@ class PmbLocalApplicationController extends Controller
         }
 
         $missingFields = $this->missingRequiredSubmitFields($application);
+        $missingDocuments = $this->missingRequiredDocuments($application);
 
-        if ($missingFields !== []) {
+        if ($missingFields !== [] || $missingDocuments !== []) {
             return response()->json([
                 'message' => 'Lengkapi data wajib sebelum submit pendaftaran.',
                 'errors' => [
                     'fields' => $missingFields,
+                    'documents' => $missingDocuments,
                 ],
             ], 422);
         }
@@ -243,9 +203,9 @@ class PmbLocalApplicationController extends Controller
         $required = $requireAll ? 'required' : 'nullable';
 
         return [
-            'academic_period_id' => [$required, 'string', 'max:255'],
-            'registration_period_id' => [$required, 'string', 'max:255'],
-            'program_option_id' => [$required, 'integer', 'exists:pmb_sevima_records,id'],
+            'academic_period_id' => [$required, 'integer', 'exists:pmb_admission_periods,id'],
+            'registration_period_id' => [$required, 'integer', 'exists:pmb_waves,id'],
+            'program_option_id' => [$required, 'integer', 'exists:pmb_registration_options,id'],
             'name' => [$required, 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => [$required, 'string', 'max:30'],
@@ -264,22 +224,28 @@ class PmbLocalApplicationController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function applicationFields(array $payload, ?PmbSevimaRecord $programOption, ?PmbSevimaRecord $registrationPeriod, ?PmbPeriod $academicPeriod): array
+    private function applicationFields(array $payload, object $programOption): array
     {
-        $rawProgram = $programOption?->raw_payload ?? [];
-
         return [
-            'academic_period_id' => $payload['academic_period_id'] ?? null,
-            'academic_period_name' => $academicPeriod?->name,
-            'registration_period_id' => $payload['registration_period_id'] ?? null,
-            'registration_period_name' => $registrationPeriod?->title ?: $registrationPeriod?->period,
-            'program_option_id' => $programOption?->id,
-            'study_program_id' => $this->firstFilled($rawProgram, ['id_program_studi', 'kode_program_studi']),
-            'study_program_name' => $programOption?->title ?: $this->firstFilled($rawProgram, ['program_studi', 'nama_program_studi', 'nama_prodi']),
-            'registration_path_id' => $this->firstFilled($rawProgram, ['id_jalur_pendaftaran', 'kode_jalur_pendaftaran']),
-            'registration_path_name' => $this->firstFilled($rawProgram, ['jalur_pendaftaran', 'nama_jalur_pendaftaran']),
-            'study_system_id' => $this->firstFilled($rawProgram, ['id_sistem_kuliah', 'kode_sistem_kuliah']),
-            'study_system_name' => $this->firstFilled($rawProgram, ['sistem_kuliah', 'nama_sistem_kuliah']),
+            'academic_period_id' => (string) $programOption->period_id,
+            'academic_period_name' => $programOption->period_name,
+            'registration_period_id' => $programOption->wave_id ? (string) $programOption->wave_id : null,
+            'registration_period_name' => $programOption->wave_name,
+            'program_option_id' => $programOption->registration_option_id,
+            'pmb_admission_period_id' => $programOption->period_id,
+            'pmb_wave_id' => $programOption->wave_id,
+            'pmb_registration_option_id' => $programOption->registration_option_id,
+            'campus_id' => $programOption->campus_id,
+            'campus_name' => $programOption->campus_name,
+            'standalone_study_program_id' => $programOption->study_program_id,
+            'admission_path_id' => $programOption->path_id,
+            'class_type_id' => $programOption->class_type_id,
+            'study_program_id' => (string) $programOption->study_program_id,
+            'study_program_name' => $programOption->study_program_name,
+            'registration_path_id' => (string) $programOption->path_id,
+            'registration_path_name' => $programOption->path_name,
+            'study_system_id' => $programOption->class_type_id ? (string) $programOption->class_type_id : null,
+            'study_system_name' => $programOption->class_name,
             'name' => $payload['name'] ?? null,
             'email' => $payload['email'] ?? null,
             'phone' => $payload['phone'] ?? null,
@@ -292,6 +258,7 @@ class PmbLocalApplicationController extends Controller
             'province' => $payload['province'] ?? null,
             'country' => $payload['country'] ?? null,
             'applicant_note' => $payload['applicant_note'] ?? null,
+            'registration_snapshot' => $this->registrationOptionPayload($programOption),
         ];
     }
 
@@ -319,6 +286,24 @@ class PmbLocalApplicationController extends Controller
             ->all();
     }
 
+    /**
+     * @return array<int, string>
+     */
+    private function missingRequiredDocuments(PmbLocalApplication $application): array
+    {
+        $requiredDocuments = [
+            'ktp' => 'KTP',
+            'ijazah' => 'Ijazah/Surat Lulus',
+            'foto' => 'Pas Foto',
+        ];
+        $uploadedTypes = $application->documents->pluck('type')->all();
+
+        return collect($requiredDocuments)
+            ->reject(fn (string $label, string $type): bool => in_array($type, $uploadedTypes, true))
+            ->values()
+            ->all();
+    }
+
     private function applicationForUser(User $user): ?PmbLocalApplication
     {
         return PmbLocalApplication::query()
@@ -341,12 +326,15 @@ class PmbLocalApplicationController extends Controller
             'registrationPeriodId' => $application->registration_period_id,
             'registrationPeriodName' => $application->registration_period_name,
             'programOptionId' => $application->program_option_id,
+            'campusId' => $application->campus_id,
+            'campusName' => $application->campus_name,
             'studyProgramId' => $application->study_program_id,
             'studyProgramName' => $application->study_program_name,
             'registrationPathId' => $application->registration_path_id,
             'registrationPathName' => $application->registration_path_name,
             'studySystemId' => $application->study_system_id,
             'studySystemName' => $application->study_system_name,
+            'registrationSnapshot' => $application->registration_snapshot,
             'name' => $application->name,
             'email' => $application->email,
             'phone' => $application->phone,
@@ -381,17 +369,103 @@ class PmbLocalApplicationController extends Controller
         ];
     }
 
-    private function firstFilled(array $item, array $keys): ?string
+    private function registrationOption(int $id): ?object
     {
-        foreach ($keys as $key) {
-            $value = data_get($item, $key);
+        return $this->registrationOptionRows()
+            ->first(fn ($option): bool => (int) $option->registration_option_id === $id);
+    }
 
-            if (filled($value) && ! is_array($value)) {
-                return (string) $value;
-            }
+    private function registrationOptionPayload(object $option): array
+    {
+        return [
+            'id' => $option->registration_option_id,
+            'academicPeriodId' => $option->period_id,
+            'academicPeriodName' => $option->period_name,
+            'registrationPeriodId' => $option->wave_id,
+            'registrationPeriodName' => $option->wave_name,
+            'campusId' => $option->campus_id,
+            'campusName' => $option->campus_name,
+            'studyProgramId' => $option->study_program_id,
+            'studyProgramName' => $option->study_program_name,
+            'programLevel' => $option->program_level,
+            'registrationPathId' => $option->path_id,
+            'registrationPathName' => $option->path_name,
+            'studySystemId' => $option->class_type_id,
+            'studySystemName' => $option->class_name,
+            'fee' => $this->rupiah((int) $option->registration_fee),
+            'registrationFee' => (int) $option->registration_fee,
+            'semesterFee' => (int) $option->semester_fee,
+            'installmentAmount' => (int) $option->installment_amount,
+            'installmentCount' => (int) $option->installment_count,
+        ];
+    }
+
+    private function registrationOptionRows()
+    {
+        return DB::table('pmb_registration_options')
+            ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_registration_options.admission_period_id')
+            ->leftJoin('pmb_waves', 'pmb_waves.id', '=', 'pmb_registration_options.wave_id')
+            ->join('campus_study_programs', 'campus_study_programs.id', '=', 'pmb_registration_options.campus_study_program_id')
+            ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
+            ->join('study_programs', 'study_programs.id', '=', 'campus_study_programs.study_program_id')
+            ->join('admission_paths', 'admission_paths.id', '=', 'pmb_registration_options.admission_path_id')
+            ->leftJoin('class_types', 'class_types.id', '=', 'pmb_registration_options.class_type_id')
+            ->leftJoin('tuition_fee_schemes', function ($join): void {
+                $join->on('tuition_fee_schemes.registration_option_id', '=', 'pmb_registration_options.id')
+                    ->where('tuition_fee_schemes.is_active', true);
+            })
+            ->where('pmb_registration_options.is_active', true)
+            ->where('pmb_admission_periods.is_active', true)
+            ->where('campus_study_programs.is_open', true)
+            ->where('campuses.is_active', true)
+            ->where('study_programs.is_active', true)
+            ->where('admission_paths.is_active', true)
+            ->orderBy('pmb_admission_periods.starts_at')
+            ->orderBy('pmb_waves.sort_order')
+            ->orderBy('campuses.sort_order')
+            ->orderBy('study_programs.sort_order')
+            ->select([
+                'pmb_registration_options.id as registration_option_id',
+                'pmb_admission_periods.id as period_id',
+                'pmb_admission_periods.name as period_name',
+                'pmb_admission_periods.academic_year',
+                'pmb_waves.id as wave_id',
+                'pmb_waves.name as wave_name',
+                'campuses.id as campus_id',
+                'campuses.name as campus_name',
+                'study_programs.id as study_program_id',
+                'study_programs.level as program_level',
+                'study_programs.name as study_program_name',
+                'admission_paths.id as path_id',
+                'admission_paths.name as path_name',
+                'class_types.id as class_type_id',
+                'class_types.name as class_name',
+                DB::raw('COALESCE(tuition_fee_schemes.registration_fee, admission_paths.registration_fee, 0) as registration_fee'),
+                DB::raw('COALESCE(tuition_fee_schemes.installment_count, 0) as installment_count'),
+                DB::raw('COALESCE(tuition_fee_schemes.installment_amount, 0) as installment_amount'),
+                DB::raw('COALESCE(tuition_fee_schemes.semester_fee, 0) as semester_fee'),
+            ])
+            ->get();
+    }
+
+    private function periodStatus(?string $startsAt, ?string $endsAt): string
+    {
+        $today = now()->toDateString();
+
+        if ($startsAt && $today < $startsAt) {
+            return 'upcoming';
         }
 
-        return null;
+        if ($endsAt && $today > $endsAt) {
+            return 'closed';
+        }
+
+        return 'open';
+    }
+
+    private function rupiah(int $amount): string
+    {
+        return 'Rp '.number_format($amount, 0, ',', '.');
     }
 
     private function userFromBearerToken(Request $request): ?User

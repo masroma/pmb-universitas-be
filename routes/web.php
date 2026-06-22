@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\AiChatLeadController;
 use App\Http\Controllers\Admin\CampusSettingController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\MasterPmbController;
 use App\Http\Controllers\Admin\PmbCatalogController;
 use App\Http\Controllers\Admin\PmbInformationSectionController;
 use App\Http\Controllers\Admin\PmbLocalApplicationController;
@@ -20,26 +21,38 @@ Route::post('/admin/login', [AuthController::class, 'login'])->name('admin.login
 
 Route::middleware('auth')->prefix('admin')->name('admin.')->group(function (): void {
     Route::get('/', DashboardController::class)->name('dashboard');
-    Route::get('/pendaftaran-lokal', [PmbLocalApplicationController::class, 'index'])->name('local-applications.index');
-    Route::get('/pendaftaran-lokal/{application}', [PmbLocalApplicationController::class, 'show'])->name('local-applications.show');
-    Route::put('/pendaftaran-lokal/{application}/status', [PmbLocalApplicationController::class, 'updateStatus'])->name('local-applications.status.update');
-    Route::get('/crm-ai', [AiChatLeadController::class, 'index'])->name('ai-chat-leads.index');
-    Route::get('/crm-ai/{lead}', [AiChatLeadController::class, 'show'])->name('ai-chat-leads.show');
-    Route::put('/crm-ai/{lead}/follow-up', [AiChatLeadController::class, 'updateFollowUp'])->name('ai-chat-leads.follow-up.update');
-    Route::get('/pendaftaran-dibuka', [PmbCatalogController::class, 'openedRegistrations'])->name('pmb-catalog.opened-registrations');
-    Route::get('/pendaftar', [PmbCatalogController::class, 'applicants'])->name('pmb-catalog.applicants');
-    Route::get('/program-studi', [PmbCatalogController::class, 'studyPrograms'])->name('pmb-catalog.study-programs');
-    Route::get('/periode', [PmbCatalogController::class, 'periods'])->name('pmb-catalog.periods');
-    Route::put('/periode/{period}/brochure', [PmbCatalogController::class, 'updatePeriodBrochure'])->name('pmb-catalog.periods.brochure.update');
+    Route::get('/pendaftaran-lokal/export', [PmbLocalApplicationController::class, 'export'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.export');
+    Route::get('/pendaftaran-lokal', [PmbLocalApplicationController::class, 'index'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.index');
+    Route::get('/pendaftaran-lokal/{application}', [PmbLocalApplicationController::class, 'show'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.show');
+    Route::put('/pendaftaran-lokal/{application}/status', [PmbLocalApplicationController::class, 'updateStatus'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.status.update');
+    Route::get('/crm-ai/export', [AiChatLeadController::class, 'export'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.export');
+    Route::get('/crm-ai', [AiChatLeadController::class, 'index'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.index');
+    Route::get('/crm-ai/{lead}', [AiChatLeadController::class, 'show'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.show');
+    Route::put('/crm-ai/{lead}/follow-up', [AiChatLeadController::class, 'updateFollowUp'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.follow-up.update');
+    Route::middleware('admin.role:super_admin,admin_pmb')->prefix('/master-pmb')->name('master-pmb.')->group(function (): void {
+        Route::get('/{resource}', [MasterPmbController::class, 'index'])->name('index');
+        Route::get('/{resource}/create', [MasterPmbController::class, 'create'])->name('create');
+        Route::post('/{resource}', [MasterPmbController::class, 'store'])->name('store');
+        Route::get('/{resource}/{id}/edit', [MasterPmbController::class, 'edit'])->name('edit');
+        Route::put('/{resource}/{id}', [MasterPmbController::class, 'update'])->name('update');
+        Route::delete('/{resource}/{id}', [MasterPmbController::class, 'destroy'])->name('destroy');
+    });
+    Route::get('/pendaftaran-dibuka', [PmbCatalogController::class, 'openedRegistrations'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.opened-registrations');
+    Route::redirect('/pendaftar', '/admin/pendaftaran-lokal')->name('pmb-catalog.applicants');
+    Route::get('/program-studi', [PmbCatalogController::class, 'studyPrograms'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.study-programs');
+    Route::get('/periode', [PmbCatalogController::class, 'periods'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.periods');
+    Route::put('/periode/{period}/brochure', [PmbCatalogController::class, 'updatePeriodBrochure'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.periods.brochure.update');
     Route::resource('/konten-pmb', PmbInformationSectionController::class)
         ->except('show')
+        ->middleware('admin.role:super_admin,admin_pmb')
         ->names('pmb-information')
         ->parameters(['konten-pmb' => 'pmbInformation']);
     Route::resource('/biaya-kuliah', TuitionFeeController::class)
         ->except('show')
+        ->middleware('admin.role:super_admin,admin_pmb')
         ->names('tuition-fees')
         ->parameters(['biaya-kuliah' => 'tuitionFee']);
-    Route::get('/settings', [CampusSettingController::class, 'edit'])->name('settings.edit');
-    Route::put('/settings', [CampusSettingController::class, 'update'])->name('settings.update');
+    Route::get('/settings', [CampusSettingController::class, 'edit'])->middleware('admin.role:super_admin,admin_pmb')->name('settings.edit');
+    Route::put('/settings', [CampusSettingController::class, 'update'])->middleware('admin.role:super_admin,admin_pmb')->name('settings.update');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

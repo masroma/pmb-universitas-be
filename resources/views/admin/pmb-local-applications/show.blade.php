@@ -14,6 +14,8 @@
         $fieldClass = 'rounded-2xl bg-slate-50 p-4';
         $labelClass = 'text-xs font-bold uppercase tracking-[0.12em] text-slate-400';
         $valueClass = 'mt-2 text-sm font-semibold text-slate-800';
+        $snapshot = $application->registration_snapshot ?? [];
+        $rupiah = fn ($amount) => 'Rp' . number_format((int) $amount, 0, ',', '.');
     @endphp
 
     <div class="space-y-6">
@@ -52,12 +54,24 @@
                             <p class="{{ $valueClass }}">{{ $application->registration_period_name ?: '-' }}</p>
                         </div>
                         <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Lokasi Kampus</p>
+                            <p class="{{ $valueClass }}">{{ $application->campus_name ?: data_get($snapshot, 'campusName', '-') }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
                             <p class="{{ $labelClass }}">Program Studi</p>
                             <p class="{{ $valueClass }}">{{ $application->study_program_name ?: '-' }}</p>
                         </div>
                         <div class="{{ $fieldClass }}">
                             <p class="{{ $labelClass }}">Jalur / Sistem</p>
                             <p class="{{ $valueClass }}">{{ $application->registration_path_name ?: '-' }} / {{ $application->study_system_name ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Biaya</p>
+                            <p class="{{ $valueClass }}">
+                                Daftar {{ $rupiah(data_get($snapshot, 'registrationFee', 0)) }} ·
+                                {{ data_get($snapshot, 'installmentCount', '-') }}x {{ $rupiah(data_get($snapshot, 'installmentAmount', 0)) }} ·
+                                Semester {{ $rupiah(data_get($snapshot, 'semesterFee', 0)) }}
+                            </p>
                         </div>
                     </div>
                 </section>

@@ -8,8 +8,18 @@ use App\Http\Controllers\Api\CampusSettingController;
 use App\Http\Controllers\Api\PmbInformationSectionController;
 use App\Http\Controllers\Api\PmbLandingContentController;
 use App\Http\Controllers\Api\PmbLocalApplicationController;
-use App\Http\Controllers\Api\TuitionFeeController;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/health', function () {
+    DB::select('select 1');
+
+    return response()->json([
+        'status' => 'ok',
+        'service' => 'pmb-backend',
+        'timestamp' => now()->toISOString(),
+    ]);
+});
 
 Route::get('/settings', [CampusSettingController::class, 'show']);
 Route::get('/landing-content', [PmbLandingContentController::class, 'index']);
@@ -27,7 +37,7 @@ Route::post('/registration/documents', [PmbLocalApplicationController::class, 'u
 
 
 Route::prefix('ai')->group(function () {
-    Route::get('/biaya', [TuitionFeeController::class, 'index']);
+    Route::get('/biaya', [AiPmbDataController::class, 'tuitionFees']);
     Route::get('/jalur-pendaftaran', [AiPmbDataController::class, 'registrationPaths']);
     Route::get('/program-studi', [AiPmbDataController::class, 'studyPrograms']);
     Route::get('/beasiswa', [AiPmbDataController::class, 'scholarships']);

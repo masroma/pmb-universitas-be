@@ -37,6 +37,7 @@
                     <h3 class="text-lg font-bold text-slate-950">Daftar Lead</h3>
                     <p class="mt-1 text-sm text-slate-500">Filter berdasarkan lead status, follow up, atau cari kontak dan prodi minat.</p>
                 </div>
+                <div class="flex flex-col gap-2 xl:flex-row">
                 <form method="GET" action="{{ route('admin.ai-chat-leads.index') }}" class="grid gap-2 lg:grid-cols-[12rem_13rem_16rem_auto]">
                     <select name="status" class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
                         <option value="">Semua lead</option>
@@ -55,6 +56,10 @@
                         Filter
                     </button>
                 </form>
+                <a href="{{ route('admin.ai-chat-leads.export', request()->query()) }}" class="inline-flex items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-bold text-white transition hover:bg-slate-800">
+                    Export CSV
+                </a>
+                </div>
             </div>
 
             <div class="overflow-x-auto">

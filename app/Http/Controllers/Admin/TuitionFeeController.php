@@ -9,6 +9,7 @@ use App\Models\PmbStudyProgram;
 use App\Models\TuitionFee;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class TuitionFeeController extends Controller
@@ -17,86 +18,75 @@ class TuitionFeeController extends Controller
     {
         $search = $request->string('q')->toString();
 
-        $tuitionFees = TuitionFee::query()
-            ->with(['period', 'studyProgram'])
+        $tuitionFees = DB::table('tuition_fee_schemes')
+            ->join('pmb_registration_options', 'pmb_registration_options.id', '=', 'tuition_fee_schemes.registration_option_id')
+            ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_registration_options.admission_period_id')
+            ->leftJoin('pmb_waves', 'pmb_waves.id', '=', 'pmb_registration_options.wave_id')
+            ->join('campus_study_programs', 'campus_study_programs.id', '=', 'pmb_registration_options.campus_study_program_id')
+            ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
+            ->join('study_programs', 'study_programs.id', '=', 'campus_study_programs.study_program_id')
+            ->join('admission_paths', 'admission_paths.id', '=', 'pmb_registration_options.admission_path_id')
+            ->leftJoin('class_types', 'class_types.id', '=', 'pmb_registration_options.class_type_id')
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 $query
-                    ->where('program_level', 'like', "%{$search}%")
-                    ->orWhere('campus', 'like', "%{$search}%")
-                    ->orWhere('wave', 'like', "%{$search}%")
-                    ->orWhere('study_program', 'like', "%{$search}%")
-                    ->orWhereHas('period', fn ($query) => $query
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('short_name', 'like', "%{$search}%")
-                        ->orWhere('academic_year', 'like', "%{$search}%"))
-                    ->orWhereHas('studyProgram', fn ($query) => $query
-                        ->where('title', 'like', "%{$search}%")
-                        ->orWhere('level', 'like', "%{$search}%"));
+                    ->where('study_programs.name', 'like', "%{$search}%")
+                    ->orWhere('study_programs.level', 'like', "%{$search}%")
+                    ->orWhere('campuses.name', 'like', "%{$search}%")
+                    ->orWhere('pmb_waves.name', 'like', "%{$search}%")
+                    ->orWhere('pmb_admission_periods.name', 'like', "%{$search}%")
+                    ->orWhere('admission_paths.name', 'like', "%{$search}%")
+                    ->orWhere('class_types.name', 'like', "%{$search}%");
             }))
-            ->orderBy('sort_order')
-            ->orderBy('campus')
-            ->orderBy('wave')
+            ->select([
+                'tuition_fee_schemes.*',
+                'pmb_admission_periods.name as period_name',
+                'pmb_admission_periods.academic_year',
+                'pmb_waves.name as wave_name',
+                'campuses.name as campus_name',
+                'study_programs.level as program_level',
+                'study_programs.name as study_program_name',
+                'admission_paths.name as path_name',
+                'class_types.name as class_name',
+            ])
+            ->orderBy('pmb_admission_periods.starts_at')
+            ->orderBy('pmb_waves.sort_order')
+            ->orderBy('campuses.sort_order')
+            ->orderBy('study_programs.sort_order')
             ->paginate(20)
             ->withQueryString();
 
         return view('admin.tuition-fees.index', [
             'campusSetting' => $this->campusSetting(),
             'search' => $search,
-            'totalActiveTuitionFees' => TuitionFee::query()->where('is_active', true)->count(),
-            'totalTuitionFees' => TuitionFee::query()->count(),
+            'totalActiveTuitionFees' => DB::table('tuition_fee_schemes')->where('is_active', true)->count(),
+            'totalTuitionFees' => DB::table('tuition_fee_schemes')->count(),
             'tuitionFees' => $tuitionFees,
         ]);
     }
 
-    public function create(): View
+    public function create(): RedirectResponse
     {
-        return view('admin.tuition-fees.create', [
-            'campusSetting' => $this->campusSetting(),
-            ...$this->formOptions(),
-            'tuitionFee' => new TuitionFee([
-                'program_level' => 'Sarjana',
-                'registration_fee' => 300000,
-                'installment_count' => 6,
-                'is_active' => true,
-                'sort_order' => 0,
-            ]),
-        ]);
+        return redirect()->route('admin.master-pmb.create', 'tuition-fees');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        TuitionFee::query()->create($this->validatedData($request));
-
-        return redirect()
-            ->route('admin.tuition-fees.index')
-            ->with('status', 'Biaya kuliah berhasil ditambahkan.');
+        return redirect()->route('admin.master-pmb.create', 'tuition-fees');
     }
 
-    public function edit(TuitionFee $tuitionFee): View
+    public function edit(TuitionFee $tuitionFee): RedirectResponse
     {
-        return view('admin.tuition-fees.edit', [
-            'campusSetting' => $this->campusSetting(),
-            ...$this->formOptions(),
-            'tuitionFee' => $tuitionFee,
-        ]);
+        return redirect()->route('admin.master-pmb.index', 'tuition-fees');
     }
 
     public function update(Request $request, TuitionFee $tuitionFee): RedirectResponse
     {
-        $tuitionFee->update($this->validatedData($request));
-
-        return redirect()
-            ->route('admin.tuition-fees.index', $request->only(['q', 'page']))
-            ->with('status', 'Biaya kuliah berhasil diperbarui.');
+        return redirect()->route('admin.master-pmb.index', 'tuition-fees');
     }
 
     public function destroy(TuitionFee $tuitionFee): RedirectResponse
     {
-        $tuitionFee->delete();
-
-        return redirect()
-            ->route('admin.tuition-fees.index')
-            ->with('status', 'Biaya kuliah berhasil dihapus.');
+        return redirect()->route('admin.master-pmb.index', 'tuition-fees');
     }
 
     /**

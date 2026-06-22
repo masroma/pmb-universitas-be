@@ -5,11 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CampusSetting;
 use App\Models\PmbApplicant;
-use App\Models\PmbPeriod;
-use App\Models\PmbSevimaRecord;
-use App\Models\PmbStudyProgram;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -22,87 +20,55 @@ class PmbCatalogController extends Controller
         $selectedStudyProgram = $request->string('program_studi')->toString();
         $selectedRegistrationPath = $request->string('jalur_pendaftaran')->toString();
         $selectedStatus = $request->string('status')->toString();
-        $periodIdsByStatus = collect();
-
-        if ($selectedStatus !== '') {
-            $periodIdsByStatus = PmbSevimaRecord::query()
-                ->where('entity_type', 'periode-pendaftaran')
-                ->where('status', $selectedStatus)
-                ->pluck('sevima_id');
-        }
-
-        $records = PmbSevimaRecord::query()
-            ->where('entity_type', 'program-studi-dibuka')
-            ->when($selectedPeriodYear !== '', fn ($query) => $query->where('raw_payload->periode_akademik', $selectedPeriodYear))
-            ->when($selectedStudyProgram !== '', fn ($query) => $query->where(function ($query) use ($selectedStudyProgram): void {
-                $query
-                    ->where('raw_payload->program_studi', $selectedStudyProgram)
-                    ->orWhere('title', $selectedStudyProgram);
-            }))
-            ->when($selectedRegistrationPath !== '', fn ($query) => $query->where('raw_payload->jalur_pendaftaran', $selectedRegistrationPath))
-            ->when($selectedStatus !== '', fn ($query) => $query->whereIn('parent_sevima_id', $periodIdsByStatus))
+        $records = DB::table('pmb_registration_options')
+            ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_registration_options.admission_period_id')
+            ->leftJoin('pmb_waves', 'pmb_waves.id', '=', 'pmb_registration_options.wave_id')
+            ->join('campus_study_programs', 'campus_study_programs.id', '=', 'pmb_registration_options.campus_study_program_id')
+            ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
+            ->join('study_programs', 'study_programs.id', '=', 'campus_study_programs.study_program_id')
+            ->join('admission_paths', 'admission_paths.id', '=', 'pmb_registration_options.admission_path_id')
+            ->leftJoin('class_types', 'class_types.id', '=', 'pmb_registration_options.class_type_id')
+            ->when($selectedPeriodYear !== '', fn ($query) => $query->where('pmb_admission_periods.academic_year', $selectedPeriodYear))
+            ->when($selectedStudyProgram !== '', fn ($query) => $query->where('study_programs.name', $selectedStudyProgram))
+            ->when($selectedRegistrationPath !== '', fn ($query) => $query->where('admission_paths.name', $selectedRegistrationPath))
+            ->when($selectedStatus === 'active', fn ($query) => $query->where('pmb_registration_options.is_active', true))
+            ->when($selectedStatus === 'inactive', fn ($query) => $query->where('pmb_registration_options.is_active', false))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 $query
-                    ->where('title', 'like', "%{$search}%")
-                    ->orWhere('subtitle', 'like', "%{$search}%")
-                    ->orWhere('period', 'like', "%{$search}%")
-                    ->orWhere('raw_payload->nama_periode_pendaftaran', 'like', "%{$search}%")
-                    ->orWhere('raw_payload->jalur_pendaftaran', 'like', "%{$search}%")
-                    ->orWhere('raw_payload->sistem_kuliah', 'like', "%{$search}%");
+                    ->where('study_programs.name', 'like', "%{$search}%")
+                    ->orWhere('campuses.name', 'like', "%{$search}%")
+                    ->orWhere('pmb_admission_periods.name', 'like', "%{$search}%")
+                    ->orWhere('pmb_waves.name', 'like', "%{$search}%")
+                    ->orWhere('admission_paths.name', 'like', "%{$search}%")
+                    ->orWhere('class_types.name', 'like', "%{$search}%");
             }))
-            ->orderBy('parent_sevima_id')
-            ->orderBy('title')
+            ->select([
+                'pmb_registration_options.id',
+                'pmb_registration_options.is_active',
+                'pmb_admission_periods.name as period_name',
+                'pmb_admission_periods.academic_year',
+                'pmb_waves.name as wave_name',
+                'campuses.name as campus_name',
+                'study_programs.name as study_program_name',
+                'study_programs.level',
+                'study_programs.accreditation',
+                'admission_paths.name as path_name',
+                'class_types.name as class_name',
+            ])
+            ->orderBy('pmb_admission_periods.starts_at')
+            ->orderBy('pmb_waves.sort_order')
+            ->orderBy('campuses.sort_order')
+            ->orderBy('study_programs.sort_order')
             ->paginate(25)
             ->withQueryString();
 
-        $periodYears = PmbSevimaRecord::query()
-            ->where('entity_type', 'program-studi-dibuka')
-            ->get(['raw_payload'])
-            ->map(fn (PmbSevimaRecord $record): ?string => filled(data_get($record->raw_payload, 'periode_akademik'))
-                ? (string) data_get($record->raw_payload, 'periode_akademik')
-                : null)
-            ->filter()
-            ->unique()
-            ->sortDesc()
-            ->values();
-
-        $studyPrograms = PmbSevimaRecord::query()
-            ->where('entity_type', 'program-studi-dibuka')
-            ->get(['raw_payload', 'title'])
-            ->map(fn (PmbSevimaRecord $record): ?string => filled(data_get($record->raw_payload, 'program_studi'))
-                ? (string) data_get($record->raw_payload, 'program_studi')
-                : $record->title)
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
-
-        $registrationPaths = PmbSevimaRecord::query()
-            ->where('entity_type', 'program-studi-dibuka')
-            ->get(['raw_payload'])
-            ->map(fn (PmbSevimaRecord $record): ?string => filled(data_get($record->raw_payload, 'jalur_pendaftaran'))
-                ? (string) data_get($record->raw_payload, 'jalur_pendaftaran')
-                : null)
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
-
-        $statusOptions = PmbSevimaRecord::query()
-            ->where('entity_type', 'periode-pendaftaran')
-            ->pluck('status')
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
-
-        $periodStatusBySevimaId = PmbSevimaRecord::query()
-            ->where('entity_type', 'periode-pendaftaran')
-            ->pluck('status', 'sevima_id');
+        $periodYears = DB::table('pmb_admission_periods')->pluck('academic_year')->filter()->unique()->sortDesc()->values();
+        $studyPrograms = DB::table('study_programs')->pluck('name')->filter()->unique()->sort()->values();
+        $registrationPaths = DB::table('admission_paths')->pluck('name')->filter()->unique()->sort()->values();
+        $statusOptions = collect(['active', 'inactive']);
 
         return view('admin.pmb-catalog.opened-registrations', [
             'campusSetting' => $this->campusSetting(),
-            'periodStatusBySevimaId' => $periodStatusBySevimaId,
             'periodYears' => $periodYears,
             'registrationPaths' => $registrationPaths,
             'records' => $records,
@@ -121,16 +87,19 @@ class PmbCatalogController extends Controller
     {
         $search = $request->string('q')->toString();
 
-        $programs = PmbStudyProgram::query()
+        $programs = DB::table('study_programs')
+            ->leftJoin('faculties', 'faculties.id', '=', 'study_programs.faculty_id')
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 $query
-                    ->where('title', 'like', "%{$search}%")
-                    ->orWhere('level', 'like', "%{$search}%")
-                    ->orWhere('accreditation', 'like', "%{$search}%")
-                    ->orWhere('sevima_id', 'like', "%{$search}%");
+                    ->where('study_programs.name', 'like', "%{$search}%")
+                    ->orWhere('study_programs.level', 'like', "%{$search}%")
+                    ->orWhere('study_programs.accreditation', 'like', "%{$search}%")
+                    ->orWhere('study_programs.code', 'like', "%{$search}%")
+                    ->orWhere('faculties.name', 'like', "%{$search}%");
             }))
-            ->orderBy('sort_order')
-            ->orderBy('title')
+            ->select('study_programs.*', 'faculties.name as faculty_name')
+            ->orderBy('study_programs.sort_order')
+            ->orderBy('study_programs.name')
             ->paginate(25)
             ->withQueryString();
 
@@ -138,7 +107,7 @@ class PmbCatalogController extends Controller
             'campusSetting' => $this->campusSetting(),
             'programs' => $programs,
             'search' => $search,
-            'totalPrograms' => PmbStudyProgram::query()->count(),
+            'totalPrograms' => DB::table('study_programs')->count(),
         ]);
     }
 
@@ -147,17 +116,16 @@ class PmbCatalogController extends Controller
         $search = $request->string('q')->toString();
         $selectedStatus = $request->string('status')->toString();
 
-        $periods = PmbPeriod::query()
+        $periods = DB::table('pmb_admission_periods')
             ->when($selectedStatus === 'active', fn ($query) => $query->where('is_active', true))
             ->when($selectedStatus === 'inactive', fn ($query) => $query->where('is_active', false))
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
                 $query
-                    ->where('sevima_id', 'like', "%{$search}%")
+                    ->where('code', 'like', "%{$search}%")
                     ->orWhere('name', 'like', "%{$search}%")
-                    ->orWhere('short_name', 'like', "%{$search}%")
                     ->orWhere('academic_year', 'like', "%{$search}%");
             }))
-            ->orderByDesc('sevima_id')
+            ->orderByDesc('starts_at')
             ->paginate(25)
             ->withQueryString();
 
@@ -166,24 +134,23 @@ class PmbCatalogController extends Controller
             'periods' => $periods,
             'search' => $search,
             'selectedStatus' => $selectedStatus,
-            'totalActivePeriods' => PmbPeriod::query()->where('is_active', true)->count(),
-            'totalInactivePeriods' => PmbPeriod::query()->where('is_active', false)->count(),
-            'totalPeriods' => PmbPeriod::query()->count(),
+            'totalActivePeriods' => DB::table('pmb_admission_periods')->where('is_active', true)->count(),
+            'totalInactivePeriods' => DB::table('pmb_admission_periods')->where('is_active', false)->count(),
+            'totalPeriods' => DB::table('pmb_admission_periods')->count(),
         ]);
     }
 
-    public function updatePeriodBrochure(Request $request, PmbPeriod $period): RedirectResponse
+    public function updatePeriodBrochure(Request $request, int $period): RedirectResponse
     {
         $validated = $request->validate([
             'brochure_path' => ['required', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
         ]);
 
-        if ($period->brochure_path) {
-            Storage::disk('public')->delete($period->brochure_path);
-        }
+        $path = $validated['brochure_path']->store('pmb/brochures', 'public');
 
-        $period->update([
-            'brochure_path' => $validated['brochure_path']->store('pmb/brochures', 'public'),
+        DB::table('pmb_admission_periods')->where('id', $period)->update([
+            'brochure_url' => Storage::disk('public')->url($path),
+            'updated_at' => now(),
         ]);
 
         return redirect()
