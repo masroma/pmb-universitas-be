@@ -128,6 +128,7 @@ class AiChatLeadController extends Controller
     private function statusLabels(): array
     {
         return [
+            'cold' => 'Cold',
             'warm' => 'Warm',
             'qualified' => 'Qualified',
             'hot' => 'Hot',

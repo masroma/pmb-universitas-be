@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'admin.role' => \App\Http\Middleware\EnsureAdminRole::class,
+            'ai.internal' => \App\Http\Middleware\VerifyAiInternalApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

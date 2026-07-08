@@ -78,17 +78,20 @@ class AiPmbDataController extends Controller
 
     public function studyPrograms(): JsonResponse
     {
+        $programRows = DB::table('study_programs')
+            ->leftJoin('faculties', 'faculties.id', '=', 'study_programs.faculty_id')
+            ->join('institutions', 'institutions.id', '=', 'study_programs.institution_id')
+            ->where('institutions.is_active', true)
+            ->where('study_programs.is_active', true)
+            ->orderBy('study_programs.sort_order')
+            ->orderBy('study_programs.level')
+            ->orderBy('study_programs.name')
+            ->select('study_programs.*', 'faculties.name as faculty_name', 'institutions.name as institution_name')
+            ->get();
+        $campusesByProgram = $this->programCampusesByProgramIds($programRows->pluck('id')->map(fn ($id) => (int) $id)->all());
+
         return response()->json([
-            'data' => DB::table('study_programs')
-                ->leftJoin('faculties', 'faculties.id', '=', 'study_programs.faculty_id')
-                ->join('institutions', 'institutions.id', '=', 'study_programs.institution_id')
-                ->where('institutions.is_active', true)
-                ->where('study_programs.is_active', true)
-                ->orderBy('study_programs.sort_order')
-                ->orderBy('study_programs.level')
-                ->orderBy('study_programs.name')
-                ->select('study_programs.*', 'faculties.name as faculty_name', 'institutions.name as institution_name')
-                ->get()
+            'data' => $programRows
                 ->map(fn ($program): array => [
                     'id' => $program->id,
                     'institution' => $program->institution_name,
@@ -99,7 +102,7 @@ class AiPmbDataController extends Controller
                     'degree' => $program->degree,
                     'accreditation' => $program->accreditation,
                     'description' => $program->description,
-                    'campuses' => $this->programCampuses((int) $program->id),
+                    'campuses' => $campusesByProgram[(int) $program->id] ?? [],
                 ])
                 ->all(),
         ]);
@@ -180,20 +183,7 @@ class AiPmbDataController extends Controller
 
     public function campusData(): JsonResponse
     {
-        $institutions = DB::table('institutions')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get()
-            ->map(fn ($institution): array => [
-                'id' => $institution->id,
-                'code' => $institution->code,
-                'campusName' => $institution->name,
-                'shortName' => $institution->short_name,
-                'website' => $institution->website,
-                'description' => $institution->description,
-                'campuses' => $this->campuses((int) $institution->id),
-            ])
-            ->all();
+        $institutions = $this->institutionsWithCampuses();
 
         return response()->json([
             'data' => [
@@ -283,22 +273,20 @@ class AiPmbDataController extends Controller
 
     public function pmbContacts(): JsonResponse
     {
+        $institutions = $this->institutionsWithCampuses();
+
         return response()->json([
             'data' => [
-                'institutions' => DB::table('institutions')
-                    ->where('is_active', true)
-                    ->orderBy('name')
-                    ->get()
-                    ->map(fn ($institution): array => [
-                        'id' => $institution->id,
-                        'campusName' => $institution->name,
-                        'website' => $institution->website,
-                        'contacts' => collect($this->campuses((int) $institution->id))
+                'institutions' => collect($institutions)
+                    ->map(fn (array $institution): array => [
+                        'id' => $institution['id'],
+                        'campusName' => $institution['campusName'],
+                        'website' => $institution['website'],
+                        'contacts' => collect($institution['campuses'])
                             ->flatMap(fn (array $campus): array => $campus['contacts'])
                             ->values()
                             ->all(),
-                    ])
-                    ->all(),
+                    ])->all(),
                 'links' => $this->contentBlocks('kontak')->all(),
             ],
         ]);
@@ -423,15 +411,45 @@ class AiPmbDataController extends Controller
             ]);
     }
 
-    private function campuses(int $institutionId): array
+    private function institutionsWithCampuses(): array
     {
-        return DB::table('campuses')
-            ->where('institution_id', $institutionId)
+        $institutions = DB::table('institutions')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->values();
+        $institutionIds = $institutions->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $campusesByInstitution = $this->campusesByInstitutionIds($institutionIds);
+
+        return $institutions->map(fn ($institution): array => [
+            'id' => $institution->id,
+            'code' => $institution->code,
+            'campusName' => $institution->name,
+            'shortName' => $institution->short_name,
+            'website' => $institution->website,
+            'description' => $institution->description,
+            'campuses' => $campusesByInstitution[(int) $institution->id] ?? [],
+        ])->all();
+    }
+
+    private function campusesByInstitutionIds(array $institutionIds): array
+    {
+        if ($institutionIds === []) {
+            return [];
+        }
+
+        $campuses = DB::table('campuses')
+            ->whereIn('institution_id', $institutionIds)
             ->where('is_active', true)
             ->orderByDesc('is_main')
             ->orderBy('sort_order')
-            ->get()
+            ->get();
+        $campusIds = $campuses->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $contactsByCampus = $this->contactsByCampusIds($campusIds);
+
+        return $campuses
             ->map(fn ($campus): array => [
+                'institution_id' => (int) $campus->institution_id,
                 'id' => $campus->id,
                 'code' => $campus->code,
                 'name' => $campus->name,
@@ -440,37 +458,70 @@ class AiPmbDataController extends Controller
                 'address' => $campus->address,
                 'mapsUrl' => $campus->maps_url,
                 'isMain' => (bool) $campus->is_main,
-                'contacts' => DB::table('campus_contacts')
-                    ->where('campus_id', $campus->id)
-                    ->orderByDesc('is_primary')
-                    ->orderBy('sort_order')
-                    ->get()
-                    ->map(fn ($contact): array => [
-                        'type' => $contact->type,
-                        'label' => $contact->label,
-                        'value' => $contact->value,
-                        'isPrimary' => (bool) $contact->is_primary,
-                    ])
-                    ->all(),
+                'contacts' => $contactsByCampus[(int) $campus->id] ?? [],
             ])
+            ->groupBy('institution_id')
+            ->map(fn (Collection $items): array => $items->map(function (array $item): array {
+                unset($item['institution_id']);
+
+                return $item;
+            })->values()->all())
             ->all();
     }
 
-    private function programCampuses(int $studyProgramId): array
+    private function contactsByCampusIds(array $campusIds): array
     {
+        if ($campusIds === []) {
+            return [];
+        }
+
+        return DB::table('campus_contacts')
+            ->whereIn('campus_id', $campusIds)
+            ->orderByDesc('is_primary')
+            ->orderBy('sort_order')
+            ->get()
+            ->map(fn ($contact): array => [
+                'campus_id' => (int) $contact->campus_id,
+                'type' => $contact->type,
+                'label' => $contact->label,
+                'value' => $contact->value,
+                'isPrimary' => (bool) $contact->is_primary,
+            ])
+            ->groupBy('campus_id')
+            ->map(fn (Collection $items): array => $items->map(function (array $item): array {
+                unset($item['campus_id']);
+
+                return $item;
+            })->values()->all())
+            ->all();
+    }
+
+    private function programCampusesByProgramIds(array $studyProgramIds): array
+    {
+        if ($studyProgramIds === []) {
+            return [];
+        }
+
         return DB::table('campus_study_programs')
             ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
-            ->where('campus_study_programs.study_program_id', $studyProgramId)
+            ->whereIn('campus_study_programs.study_program_id', $studyProgramIds)
             ->where('campus_study_programs.is_open', true)
             ->where('campuses.is_active', true)
             ->orderBy('campuses.sort_order')
             ->get()
             ->map(fn ($campus): array => [
+                'study_program_id' => (int) $campus->study_program_id,
                 'id' => $campus->id,
                 'code' => $campus->code,
                 'name' => $campus->name,
                 'city' => $campus->city,
             ])
+            ->groupBy('study_program_id')
+            ->map(fn (Collection $items): array => $items->map(function (array $item): array {
+                unset($item['study_program_id']);
+
+                return $item;
+            })->values()->all())
             ->all();
     }
 

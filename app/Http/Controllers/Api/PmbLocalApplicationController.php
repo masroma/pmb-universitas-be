@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Pmb\ApplicationSubmittedMail;
 use App\Models\PmbLocalApplication;
 use App\Models\PmbLocalApplicationDocument;
 use App\Models\User;
+use App\Services\PmbMailService;
+use App\Support\CampusBranding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,6 +53,19 @@ class PmbLocalApplicationController extends Controller
                     ->values(),
                 'programOptions' => $this->registrationOptionRows()
                     ->map(fn ($option): array => $this->registrationOptionPayload($option))
+                    ->values(),
+                'registrationPaths' => DB::table('admission_paths')
+                    ->where('is_active', true)
+                    ->whereNotNull('sevima_id')
+                    ->orderBy('name')
+                    ->get()
+                    ->map(fn ($path): array => [
+                        'id' => $path->id,
+                        'sevimaId' => $path->sevima_id,
+                        'name' => $path->name,
+                        'description' => $path->description,
+                        'jenisPendaftaran' => $path->jenis_pendaftaran_name,
+                    ])
                     ->values(),
             ],
         ]);
@@ -97,8 +113,10 @@ class PmbLocalApplicationController extends Controller
             return response()->json(['message' => 'Pilihan program tidak tersedia.'], 422);
         }
 
+        $admissionPath = $this->admissionPath((int) ($payload['registration_path_id'] ?? 0));
+
         $application->fill([
-            ...$this->applicationFields($payload, $programOption),
+            ...$this->applicationFields($payload, $programOption, $admissionPath),
             'status' => PmbLocalApplication::STATUS_DRAFT,
             'review_note' => null,
         ])->save();
@@ -145,8 +163,14 @@ class PmbLocalApplicationController extends Controller
             'review_note' => null,
         ]);
 
+        $application = $application->fresh(['documents', 'user']);
+        app(PmbMailService::class)->sendToApplication(
+            $application,
+            new ApplicationSubmittedMail($application, CampusBranding::setting()),
+        );
+
         return response()->json([
-            'data' => $this->applicationPayload($application->fresh('documents')),
+            'data' => $this->applicationPayload($application),
         ]);
     }
 
@@ -206,6 +230,7 @@ class PmbLocalApplicationController extends Controller
             'academic_period_id' => [$required, 'integer', 'exists:pmb_admission_periods,id'],
             'registration_period_id' => [$required, 'integer', 'exists:pmb_waves,id'],
             'program_option_id' => [$required, 'integer', 'exists:pmb_registration_options,id'],
+            'registration_path_id' => [$required, 'integer', 'exists:admission_paths,id'],
             'name' => [$required, 'string', 'max:255'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => [$required, 'string', 'max:30'],
@@ -224,8 +249,17 @@ class PmbLocalApplicationController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function applicationFields(array $payload, object $programOption): array
+    private function applicationFields(array $payload, object $programOption, ?object $admissionPath = null): array
     {
+        // Jalur pendaftaran dipilih terpisah (data lokal dari SEVIMA); jatuh ke jalur
+        // bawaan program option bila belum dipilih.
+        $pathId = $admissionPath->id ?? $programOption->path_id;
+        $pathName = $admissionPath->name ?? $programOption->path_name;
+
+        $snapshot = $this->registrationOptionPayload($programOption);
+        $snapshot['registrationPathId'] = $pathId;
+        $snapshot['registrationPathName'] = $pathName;
+
         return [
             'academic_period_id' => (string) $programOption->period_id,
             'academic_period_name' => $programOption->period_name,
@@ -238,12 +272,12 @@ class PmbLocalApplicationController extends Controller
             'campus_id' => $programOption->campus_id,
             'campus_name' => $programOption->campus_name,
             'standalone_study_program_id' => $programOption->study_program_id,
-            'admission_path_id' => $programOption->path_id,
+            'admission_path_id' => $pathId,
             'class_type_id' => $programOption->class_type_id,
             'study_program_id' => (string) $programOption->study_program_id,
             'study_program_name' => $programOption->study_program_name,
-            'registration_path_id' => (string) $programOption->path_id,
-            'registration_path_name' => $programOption->path_name,
+            'registration_path_id' => (string) $pathId,
+            'registration_path_name' => $pathName,
             'study_system_id' => $programOption->class_type_id ? (string) $programOption->class_type_id : null,
             'study_system_name' => $programOption->class_name,
             'name' => $payload['name'] ?? null,
@@ -258,7 +292,7 @@ class PmbLocalApplicationController extends Controller
             'province' => $payload['province'] ?? null,
             'country' => $payload['country'] ?? null,
             'applicant_note' => $payload['applicant_note'] ?? null,
-            'registration_snapshot' => $this->registrationOptionPayload($programOption),
+            'registration_snapshot' => $snapshot,
         ];
     }
 
@@ -271,6 +305,7 @@ class PmbLocalApplicationController extends Controller
             'academic_period_id' => 'Periode Akademik',
             'registration_period_id' => 'Periode Pendaftaran',
             'program_option_id' => 'Program Studi',
+            'registration_path_id' => 'Jalur Pendaftaran',
             'name' => 'Nama Lengkap',
             'phone' => 'No. Handphone',
             'gender' => 'Jenis Kelamin',
@@ -373,6 +408,18 @@ class PmbLocalApplicationController extends Controller
     {
         return $this->registrationOptionRows()
             ->first(fn ($option): bool => (int) $option->registration_option_id === $id);
+    }
+
+    private function admissionPath(int $id): ?object
+    {
+        if ($id === 0) {
+            return null;
+        }
+
+        return DB::table('admission_paths')
+            ->where('id', $id)
+            ->where('is_active', true)
+            ->first(['id', 'name', 'sevima_id', 'jenis_pendaftaran_name']);
     }
 
     private function registrationOptionPayload(object $option): array

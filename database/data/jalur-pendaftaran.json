@@ -1,0 +1,331 @@
+[
+    {
+        "id_jalur_pendaftaran": 40,
+        "nama_jalur_pendaftaran": "Beasiswa Kerjasama Wartawan Parlemen  & Paramadina",
+        "keterangan_jalur_pendaftaran": "Di Peruntukan untuk Wartawan Parlemen di bawah  Koordinatoriat Wartawan Parlemen MPR/DPR RI.",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 10,
+        "nama_jalur_pendaftaran": "Jalur Tes Potensial Akademik",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 9,
+        "nama_jalur_pendaftaran": "Skor UTBK",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 12,
+        "nama_jalur_pendaftaran": "Seleksi Mandiri",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 11,
+        "nama_jalur_pendaftaran": "Nilai Rapor",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 23,
+        "nama_jalur_pendaftaran": "Jalur SMA/SMK",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 17,
+        "nama_jalur_pendaftaran": "Beasiswa Paramadina Fellowship",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 25,
+        "nama_jalur_pendaftaran": "Beasiswa Asosiasi Guru pendidikan Agama Islam Indo",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 3,
+        "nama_jalur_pendaftaran": "Pindahan",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "1",
+        "nama_jenis_pendaftaran": "Pindahan"
+    },
+    {
+        "id_jalur_pendaftaran": 29,
+        "nama_jalur_pendaftaran": "RPL Transfer SKS",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "14",
+        "nama_jenis_pendaftaran": "RPL Transfer SKS"
+    },
+    {
+        "id_jalur_pendaftaran": 30,
+        "nama_jalur_pendaftaran": "RPL Perolehan SKS",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "4",
+        "nama_jenis_pendaftaran": "RPL Perolehan SKS"
+    },
+    {
+        "id_jalur_pendaftaran": 41,
+        "nama_jalur_pendaftaran": "Beasiswa TENAGA KEPENDIDIKAN(TENDIK Paramadina)60%",
+        "keterangan_jalur_pendaftaran": "Beasiswa ini di berikan khusus Karyawan atau Tendik Universitas Paramadina yang memiliki status pegawai tetap. Beasiswa ini sebagai wujud nyata Universitas mendukung dan peduli terhadap peningkatan kualitas Sumber Daya Manusia (SDM) melalui pendidikan. Beasiswa Parsial 60% di berikan oleh Universitas Paramadina kepada TENDIK yang melanjutkan Program Sarjana dan Program Magister. Dengan Biaya Pendidikan Khusus.",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 44,
+        "nama_jalur_pendaftaran": "Beasiswa TENAGA KEPENDIDIKAN (Tendik Paramdina)",
+        "keterangan_jalur_pendaftaran": "Beasiswa ini di berikan khusus Karyawan atau Tendik Universitas Paramadina\n yang memiliki status pegawai tetap. \nBeasiswa ini sebagai wujud nyata Universitas mendukung dan peduli terhadap peningkatan\n kualitas Sumber Daya Manusia\n (SDM) melalui pendidikan. Beasiswa Parsial 60% di berikan\n oleh Universitas Paramadina kepada\n TENDIK yang melanjutkan Program Sarjana, Program Magister dan Doktor. Dengan Biaya Pendidikan Khusus.",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 24,
+        "nama_jalur_pendaftaran": "Beasiswa Kerjasama Perusahaan",
+        "keterangan_jalur_pendaftaran": "Beasiswa Kerjasama Perusahaan dengan Universitas Paramadina.",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 26,
+        "nama_jalur_pendaftaran": "Alih Jenjang",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "14",
+        "nama_jenis_pendaftaran": "RPL Transfer SKS"
+    },
+    {
+        "id_jalur_pendaftaran": 20,
+        "nama_jalur_pendaftaran": "Beasiswa Magister Ilmu Agama Islam",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 2,
+        "nama_jalur_pendaftaran": "Alih Jenjang (D3 ke S1)",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "1",
+        "nama_jenis_pendaftaran": "Pindahan"
+    },
+    {
+        "id_jalur_pendaftaran": 32,
+        "nama_jalur_pendaftaran": "Beasiswa Khusus Magister Agama Islam (Filsafat)",
+        "keterangan_jalur_pendaftaran": "Rekomendasi Kuhusus Ka Prodi",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 34,
+        "nama_jalur_pendaftaran": "Beasiswa Kerjasama",
+        "keterangan_jalur_pendaftaran": "Beasiswa Jalur Kerjasama Sekolah",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 37,
+        "nama_jalur_pendaftaran": "Beasiswa Kerjasama  Nizamia Andalusia-Paramadina",
+        "keterangan_jalur_pendaftaran": "Beasiswa Kerjasama  Nizamia Andalusia School dengan Universitas Paramadina",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 21,
+        "nama_jalur_pendaftaran": "Beasiswa Jurnalis dan Guru",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 45,
+        "nama_jalur_pendaftaran": "Beasiswa Prodi Falsafah dan Agama 70%",
+        "keterangan_jalur_pendaftaran": "Rekomendasi Khusus KaProdi",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 4,
+        "nama_jalur_pendaftaran": "Jalur Prestasi Non-Akademik",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 7,
+        "nama_jalur_pendaftaran": "Ujian Masuk Bersama Lainnya",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 8,
+        "nama_jalur_pendaftaran": "Seleksi Nasional Berdasarkan Prestasi (SNBP)",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 16,
+        "nama_jalur_pendaftaran": "Jalur Anak Pendidik",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 27,
+        "nama_jalur_pendaftaran": "Jalur Anak Pendidik dan Anak Jurnalis",
+        "keterangan_jalur_pendaftaran": "khusus anak dari pendidik dan Jurnalis yang Aktif",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 19,
+        "nama_jalur_pendaftaran": "Beasiswa KIP Kuliah",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 13,
+        "nama_jalur_pendaftaran": "Jalur Tahfidz Alquran",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 14,
+        "nama_jalur_pendaftaran": "Jalur Influencer",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 22,
+        "nama_jalur_pendaftaran": "Beasiswa Anak Pegawai",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 39,
+        "nama_jalur_pendaftaran": "PSR Berbras",
+        "keterangan_jalur_pendaftaran": "Jalur Khusus PSR Berbras (Khusus Prestasi)",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 38,
+        "nama_jalur_pendaftaran": "Diskresi",
+        "keterangan_jalur_pendaftaran": "khusus Rekomendasi Pimpinan/Yayasan",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 36,
+        "nama_jalur_pendaftaran": "Beasiswa Gojek-Paramadina",
+        "keterangan_jalur_pendaftaran": "Beasiswa Kerjasama GoJek-Paramadina",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 35,
+        "nama_jalur_pendaftaran": "Beasiswa Pegawai",
+        "keterangan_jalur_pendaftaran": "Beasiswa Khusus Pegawai Universitas Paramadina",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 18,
+        "nama_jalur_pendaftaran": "Beasiswa Paramadina Social Responsibility (PSR)",
+        "keterangan_jalur_pendaftaran": "Beasiswa khusus untuk mahasiswa baru yang berdomisili (tinggal) di sekitar kampus cipayung dan kampus cikarang.",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 15,
+        "nama_jalur_pendaftaran": "Jalur KIP Prestasi Paramadina",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 33,
+        "nama_jalur_pendaftaran": "Jalur Prestasi Atlet Basket",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 1,
+        "nama_jalur_pendaftaran": "SBMPTN",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 5,
+        "nama_jalur_pendaftaran": "Seleksi Mandiri PTN",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 6,
+        "nama_jalur_pendaftaran": "Seleksi Mandiri PTS",
+        "keterangan_jalur_pendaftaran": "",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 31,
+        "nama_jalur_pendaftaran": "Ekonomi Islam (Magister Ilmu Agama Islam)",
+        "keterangan_jalur_pendaftaran": "khusus rekomendasi",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 42,
+        "nama_jalur_pendaftaran": "Beasiswa Alumni Universitas Paramadina",
+        "keterangan_jalur_pendaftaran": "Beasiswa yang diperuntukan bagi alumni Universitas Paramadina",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 43,
+        "nama_jalur_pendaftaran": "Beasiswa Prestasi",
+        "keterangan_jalur_pendaftaran": "Jalur Khusus Prestasi\n(Memiliki Prestasi yang dapat di buktikan di level nasional/ Internasional)",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 28,
+        "nama_jalur_pendaftaran": "Beasiswa  Prodi Desain Produk",
+        "keterangan_jalur_pendaftaran": "Rekomendasi KaProdi DP",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 46,
+        "nama_jalur_pendaftaran": "Jalur Rekomendasi Guru BK",
+        "keterangan_jalur_pendaftaran": "Jalur Pendaftaran  Rekomendasi Guru BK di khususkan untuk Siswa/i yang berprestasi dan mendapatkan surat rekomendasi dari Guru BK",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    },
+    {
+        "id_jalur_pendaftaran": 47,
+        "nama_jalur_pendaftaran": "Beasiswa Pegawai RPL",
+        "keterangan_jalur_pendaftaran": "Beasiswa Khusus Pegawai Universitas Paramadina (untuk melanjutkan  dari D3 ke S1)",
+        "id_jenis_pendaftaran": "0",
+        "nama_jenis_pendaftaran": "Peserta Didik Baru"
+    }
+]

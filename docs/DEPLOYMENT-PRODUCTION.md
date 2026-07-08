@@ -83,3 +83,27 @@ Alert minimum:
 - Folder `.env` tidak bisa diakses publik.
 - Backup tidak disimpan di public web root.
 - File upload hanya dokumen yang diizinkan.
+
+## Email Notifikasi
+
+Wajib dikonfigurasi sebelum go-live. Sistem mengirim email pada:
+
+- Registrasi akun calon mahasiswa
+- Submit pendaftaran
+- Verifikasi pendaftaran oleh admin
+- Penolakan/perbaikan pendaftaran oleh admin
+
+Set environment:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.provider.com
+MAIL_PORT=587
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+MAIL_FROM_ADDRESS=pmb@domain-kampus
+MAIL_FROM_NAME="PMB Kampus"
+FRONTEND_URL=https://domain-frontend
+```
+
+Pembayaran biaya pendaftaran dilakukan **manual** (belum terintegrasi payment gateway). Instruksi pembayaran dikomunikasikan admin melalui email/WhatsApp.

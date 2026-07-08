@@ -224,9 +224,8 @@ class StandalonePmbSeeder extends Seeder
     private function seedCampusPrograms(array $campusIds, array $programIds): array
     {
         $map = [
-            'cipayung' => ['s1-manajemen', 's1-hi', 's1-komunikasi', 's1-psikologi', 's1-falsafah-agama', 's1-informatika', 's1-desain-produk', 's1-dkv'],
-            'kuningan' => ['s2-manajemen', 's2-komunikasi', 's2-psikologi', 's3-manajemen'],
-            'cikarang' => ['s1-manajemen', 's1-komunikasi', 's1-informatika'],
+            'cipayung' => ['s1-manajemen', 's1-hi', 's1-komunikasi', 's1-psikologi', 's1-falsafah-agama', 's1-informatika', 's1-desain-produk', 's1-dkv', 's2-manajemen', 's2-komunikasi', 's2-psikologi', 's3-manajemen'],
+            'cikarang' => ['s1-manajemen', 's1-komunikasi', 's1-informatika', 's1-psikologi', 's2-manajemen', 's2-komunikasi', 's3-manajemen'],
         ];
 
         foreach ($map as $campusCode => $programCodes) {
@@ -349,11 +348,9 @@ class StandalonePmbSeeder extends Seeder
     private function seedAdmissionPaths(int $institutionId): array
     {
         $paths = [
-            ['code' => 'reguler', 'name' => 'Reguler', 'description' => 'Jalur pendaftaran umum untuk calon mahasiswa baru.', 'registration_fee' => 300000],
-            ['code' => 'prestasi', 'name' => 'Prestasi', 'description' => 'Jalur untuk calon mahasiswa dengan prestasi akademik atau non-akademik.', 'registration_fee' => 300000],
-            ['code' => 'beasiswa', 'name' => 'Beasiswa', 'description' => 'Jalur seleksi beasiswa sesuai ketentuan kampus.', 'registration_fee' => 0],
-            ['code' => 'rpl', 'name' => 'Rekognisi Pembelajaran Lampau', 'description' => 'Jalur penyetaraan pengalaman belajar dan kerja.', 'registration_fee' => 300000],
-            ['code' => 'pascasarjana', 'name' => 'Program Pascasarjana', 'description' => 'Jalur pendaftaran untuk program S2 dan S3.', 'registration_fee' => 500000],
+            ['code' => 'reguler', 'name' => 'Reguler', 'description' => 'Jalur reguler untuk lulusan baru maupun calon mahasiswa umum.', 'registration_fee' => 300000],
+            ['code' => 'karyawan', 'name' => 'Karyawan', 'description' => 'Jalur kelas karyawan untuk calon mahasiswa yang sudah bekerja.', 'registration_fee' => 350000],
+            ['code' => 'rpl', 'name' => 'RPL (Rekognisi Pembelajaran Lampau)', 'description' => 'Jalur penyetaraan pengalaman belajar dan kerja sebelumnya.', 'registration_fee' => 500000],
         ];
 
         foreach ($paths as $index => $path) {
@@ -390,59 +387,65 @@ class StandalonePmbSeeder extends Seeder
         array $pathIds,
         array $classTypeIds,
     ): void {
-        $options = [
-            ['campus_program' => 'cipayung|s1-manajemen', 'path' => 'reguler', 'class' => 'reguler-pagi', 'semester_fee' => 8700000, 'installment_amount' => 1450000],
-            ['campus_program' => 'cipayung|s1-komunikasi', 'path' => 'reguler', 'class' => 'reguler-pagi', 'semester_fee' => 8700000, 'installment_amount' => 1450000],
-            ['campus_program' => 'cipayung|s1-psikologi', 'path' => 'prestasi', 'class' => 'reguler-pagi', 'semester_fee' => 8700000, 'installment_amount' => 1450000],
-            ['campus_program' => 'cipayung|s1-falsafah-agama', 'path' => 'beasiswa', 'class' => 'hybrid', 'semester_fee' => 2475000, 'installment_amount' => 413000],
-            ['campus_program' => 'cipayung|s1-informatika', 'path' => 'reguler', 'class' => 'hybrid', 'semester_fee' => 8700000, 'installment_amount' => 1450000],
-            ['campus_program' => 'cikarang|s1-manajemen', 'path' => 'reguler', 'class' => 'malam', 'semester_fee' => 6900000, 'installment_amount' => 1150000],
-            ['campus_program' => 'cikarang|s1-informatika', 'path' => 'reguler', 'class' => 'sabtu', 'semester_fee' => 6900000, 'installment_amount' => 1150000],
-            ['campus_program' => 'kuningan|s2-manajemen', 'path' => 'pascasarjana', 'class' => 'malam', 'semester_fee' => 12000000, 'installment_amount' => 2000000],
-            ['campus_program' => 'kuningan|s2-komunikasi', 'path' => 'pascasarjana', 'class' => 'sabtu', 'semester_fee' => 12000000, 'installment_amount' => 2000000],
-            ['campus_program' => 'kuningan|s3-manajemen', 'path' => 'pascasarjana', 'class' => 'hybrid', 'semester_fee' => 18000000, 'installment_amount' => 3000000],
+        // Prodi otomatis mengikuti jenjang; biaya semester mengikuti jenjang program studi.
+        $semesterFeeByLevel = ['S1' => 8700000, 'S2' => 12000000, 'S3' => 18000000];
+        // Jalur masuk beserta pilihan kelas dan biaya pendaftaran per jalur.
+        $classesByPath = [
+            'reguler' => ['reguler-pagi', 'malam'],
+            'karyawan' => ['malam', 'sabtu'],
+            'rpl' => ['sabtu', 'hybrid'],
         ];
+        $registrationFeeByPath = ['reguler' => 300000, 'karyawan' => 350000, 'rpl' => 500000];
 
-        foreach ($options as $option) {
-            foreach (['gel-1', 'gel-2'] as $waveCode) {
-                DB::table('pmb_registration_options')->updateOrInsert(
-                    [
-                        'admission_period_id' => $periodId,
-                        'wave_id' => $waveIds[$waveCode],
-                        'campus_study_program_id' => $campusProgramIds[$option['campus_program']],
-                        'admission_path_id' => $pathIds[$option['path']],
-                        'class_type_id' => $classTypeIds[$option['class']],
-                    ],
-                    [
-                        'is_active' => true,
-                        'updated_at' => $this->now,
-                        'created_at' => $this->now,
-                    ],
-                );
+        foreach (array_keys($campusProgramIds) as $campusProgramKey) {
+            [, $programCode] = explode('|', $campusProgramKey);
+            $level = strtoupper(explode('-', $programCode)[0]);
+            $semesterFee = $semesterFeeByLevel[$level] ?? 8700000;
+            $installmentAmount = (int) round($semesterFee / 6);
 
-                $registrationOptionId = (int) DB::table('pmb_registration_options')
-                    ->where('admission_period_id', $periodId)
-                    ->where('wave_id', $waveIds[$waveCode])
-                    ->where('campus_study_program_id', $campusProgramIds[$option['campus_program']])
-                    ->where('admission_path_id', $pathIds[$option['path']])
-                    ->where('class_type_id', $classTypeIds[$option['class']])
-                    ->value('id');
+            foreach ($classesByPath as $pathCode => $classCodes) {
+                foreach ($classCodes as $classCode) {
+                foreach (['gel-1', 'gel-2'] as $waveCode) {
+                    DB::table('pmb_registration_options')->updateOrInsert(
+                        [
+                            'admission_period_id' => $periodId,
+                            'wave_id' => $waveIds[$waveCode],
+                            'campus_study_program_id' => $campusProgramIds[$campusProgramKey],
+                            'admission_path_id' => $pathIds[$pathCode],
+                            'class_type_id' => $classTypeIds[$classCode],
+                        ],
+                        [
+                            'is_active' => true,
+                            'updated_at' => $this->now,
+                            'created_at' => $this->now,
+                        ],
+                    );
 
-                DB::table('tuition_fee_schemes')->updateOrInsert(
-                    ['registration_option_id' => $registrationOptionId],
-                    [
-                        'registration_fee' => $option['path'] === 'pascasarjana' ? 500000 : ($option['path'] === 'beasiswa' ? 0 : 300000),
-                        'installment_count' => 6,
-                        'installment_amount' => $option['installment_amount'],
-                        'semester_fee' => $option['semester_fee'],
-                        'total_first_payment' => $option['installment_amount'],
-                        'currency' => 'IDR',
-                        'notes' => 'Biaya contoh tenant Paramadina, dapat disesuaikan per kampus.',
-                        'is_active' => true,
-                        'updated_at' => $this->now,
-                        'created_at' => $this->now,
-                    ],
-                );
+                    $registrationOptionId = (int) DB::table('pmb_registration_options')
+                        ->where('admission_period_id', $periodId)
+                        ->where('wave_id', $waveIds[$waveCode])
+                        ->where('campus_study_program_id', $campusProgramIds[$campusProgramKey])
+                        ->where('admission_path_id', $pathIds[$pathCode])
+                        ->where('class_type_id', $classTypeIds[$classCode])
+                        ->value('id');
+
+                    DB::table('tuition_fee_schemes')->updateOrInsert(
+                        ['registration_option_id' => $registrationOptionId],
+                        [
+                            'registration_fee' => $registrationFeeByPath[$pathCode],
+                            'installment_count' => 6,
+                            'installment_amount' => $installmentAmount,
+                            'semester_fee' => $semesterFee,
+                            'total_first_payment' => $installmentAmount,
+                            'currency' => 'IDR',
+                            'notes' => 'Estimasi biaya tenant Paramadina, dapat disesuaikan per kampus dan jalur.',
+                            'is_active' => true,
+                            'updated_at' => $this->now,
+                            'created_at' => $this->now,
+                        ],
+                    );
+                    }
+                }
             }
         }
     }

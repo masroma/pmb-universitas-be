@@ -30,6 +30,8 @@ class DatabaseSeeder extends Seeder
             ['id' => 1],
             [
                 'campus_name' => 'Universitas Paramadina',
+                'pmb_tagline' => 'Penerimaan Mahasiswa Baru 2026',
+                'hero_description' => 'Pendidikan berkualitas, berwawasan global dan berbasis nilai-nilai Islam, untuk membentuk pemimpin masa depan.',
                 'address' => 'Jl. Gatot Subroto Kav. 97, Jakarta Selatan',
                 'website' => 'https://paramadina.ac.id',
                 'facebook' => 'https://facebook.com/paramadina',
@@ -46,6 +48,7 @@ class DatabaseSeeder extends Seeder
         $this->call(PmbInformationSectionSeeder::class);
         $this->call(TuitionFeeSeeder::class);
         $this->call(StandalonePmbSeeder::class);
+        $this->call(AdmissionPathSeeder::class);
         $this->call(StudentPortalUserSeeder::class);
     }
 }

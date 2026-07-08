@@ -9,6 +9,8 @@ class CampusSetting extends Model
 {
     protected $fillable = [
         'campus_name',
+        'pmb_tagline',
+        'hero_description',
         'logo_path',
         'hero_image_path',
         'address',

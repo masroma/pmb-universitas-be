@@ -26,6 +26,8 @@ class CampusSettingController extends Controller
 
         $validated = $request->validate([
             'campus_name' => ['required', 'string', 'max:255'],
+            'pmb_tagline' => ['nullable', 'string', 'max:255'],
+            'hero_description' => ['nullable', 'string'],
             'logo_path' => ['nullable', 'image', 'max:2048'],
             'hero_image_path' => ['nullable', 'image', 'max:4096'],
             'address' => ['nullable', 'string'],
@@ -62,8 +64,11 @@ class CampusSettingController extends Controller
 
     private function setting(): CampusSetting
     {
-        return CampusSetting::query()->first() ?? CampusSetting::query()->create([
-            'campus_name' => 'Universitas',
-        ]);
+        return CampusSetting::query()
+            ->orderByDesc('updated_at')
+            ->orderByDesc('id')
+            ->first() ?? CampusSetting::query()->create([
+                'campus_name' => 'Universitas',
+            ]);
     }
 }

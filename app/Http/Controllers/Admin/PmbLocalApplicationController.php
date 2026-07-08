@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Pmb\ApplicationRejectedMail;
+use App\Mail\Pmb\ApplicationVerifiedMail;
 use App\Models\CampusSetting;
 use App\Models\PmbLocalApplication;
+use App\Services\PmbMailService;
 use App\Support\AuditLogger;
+use App\Support\CampusBranding;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -66,6 +70,7 @@ class PmbLocalApplicationController extends Controller
         ]);
 
         $before = $application->only(['status', 'review_note', 'reviewed_at', 'reviewed_by']);
+        $previousStatus = $application->status;
         $application->update([
             'status' => $payload['status'],
             'review_note' => $payload['review_note'] ?? null,
@@ -73,6 +78,18 @@ class PmbLocalApplicationController extends Controller
             'reviewed_by' => in_array($payload['status'], [PmbLocalApplication::STATUS_VERIFIED, PmbLocalApplication::STATUS_REJECTED], true) ? $request->user()->id : null,
         ]);
         AuditLogger::record('application_status_updated', 'pmb_local_applications', $application->id, $before, $application->fresh()->only(['status', 'review_note', 'reviewed_at', 'reviewed_by']), $request);
+
+        $application = $application->fresh(['user']);
+        $campusSetting = CampusBranding::setting();
+        $mailService = app(PmbMailService::class);
+
+        if ($payload['status'] === PmbLocalApplication::STATUS_VERIFIED && $previousStatus !== PmbLocalApplication::STATUS_VERIFIED) {
+            $mailService->sendToApplication($application, new ApplicationVerifiedMail($application, $campusSetting));
+        }
+
+        if ($payload['status'] === PmbLocalApplication::STATUS_REJECTED && $previousStatus !== PmbLocalApplication::STATUS_REJECTED) {
+            $mailService->sendToApplication($application, new ApplicationRejectedMail($application, $campusSetting));
+        }
 
         return redirect()
             ->route('admin.local-applications.show', $application)

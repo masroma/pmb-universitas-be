@@ -80,6 +80,8 @@
                                 $statusClass = match ($lead->status) {
                                     'hot', 'contact_requested' => 'bg-red-50 text-red-700 ring-red-100',
                                     'qualified' => 'bg-amber-50 text-amber-700 ring-amber-100',
+                                    'warm' => 'bg-blue-50 text-blue-700 ring-blue-100',
+                                    'cold' => 'bg-slate-100 text-slate-500 ring-slate-200',
                                     default => 'bg-slate-100 text-slate-600 ring-slate-200',
                                 };
                             @endphp

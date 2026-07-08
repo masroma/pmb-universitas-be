@@ -22,6 +22,7 @@ class AiChatConversation extends Model
         'lead_interest',
         'lead_qualified_at',
         'contact_consent_at',
+        'last_qualification_key',
     ];
 
     protected function casts(): array

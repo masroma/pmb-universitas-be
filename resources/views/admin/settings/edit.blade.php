@@ -1,7 +1,7 @@
 @extends('admin.layout')
 
-@section('title', 'Setting Kampus')
-@section('page_title', 'Setting Kampus')
+@section('title', 'Setting Website')
+@section('page_title', 'Setting Website')
 
 @section('content')
     @php
@@ -39,6 +39,23 @@
                     <label for="campus_name" class="{{ $labelClass }}">Nama Kampus</label>
                     <input id="campus_name" name="campus_name" type="text" value="{{ old('campus_name', $campusSetting->campus_name) }}" required class="{{ $inputClass }}">
                     @error('campus_name')
+                        <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="pmb_tagline" class="{{ $labelClass }}">Tagline PMB</label>
+                    <input id="pmb_tagline" name="pmb_tagline" type="text" value="{{ old('pmb_tagline', $campusSetting->pmb_tagline) }}" placeholder="Penerimaan Mahasiswa Baru 2026" class="{{ $inputClass }}">
+                    <p class="mt-2 text-xs text-slate-500">Kosongkan untuk memakai tahun akademik periode PMB aktif.</p>
+                    @error('pmb_tagline')
+                        <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div class="lg:col-span-2">
+                    <label for="hero_description" class="{{ $labelClass }}">Deskripsi Hero Landing Page</label>
+                    <textarea id="hero_description" name="hero_description" rows="3" class="{{ $inputClass }}">{{ old('hero_description', $campusSetting->hero_description) }}</textarea>
+                    @error('hero_description')
                         <p class="mt-2 text-xs font-semibold text-red-600">{{ $message }}</p>
                     @enderror
                 </div>

@@ -24,7 +24,7 @@ Route::get('/health', function () {
 Route::get('/settings', [CampusSettingController::class, 'show']);
 Route::get('/landing-content', [PmbLandingContentController::class, 'index']);
 Route::get('/pmb-information', [PmbInformationSectionController::class, 'index']);
-Route::post('/ai/chat', [AiChatController::class, 'store']);
+
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/me', [AuthController::class, 'me']);
@@ -36,7 +36,15 @@ Route::post('/registration/submit', [PmbLocalApplicationController::class, 'subm
 Route::post('/registration/documents', [PmbLocalApplicationController::class, 'uploadDocument']);
 
 
-Route::prefix('ai')->group(function () {
+Route::prefix('ai')
+    ->middleware(['throttle:120,1'])
+    ->group(function () {
+    Route::post('/chat', [AiChatController::class, 'store']);
+});
+
+Route::prefix('ai')
+    ->middleware(['ai.internal', 'throttle:120,1'])
+    ->group(function () {
     Route::get('/biaya', [AiPmbDataController::class, 'tuitionFees']);
     Route::get('/jalur-pendaftaran', [AiPmbDataController::class, 'registrationPaths']);
     Route::get('/program-studi', [AiPmbDataController::class, 'studyPrograms']);

@@ -8,6 +8,7 @@ use App\Models\AiChatLead;
 use App\Models\AiChatMessage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -61,15 +62,47 @@ class AiChatMemoryController extends Controller
     {
         $validated = $request->validate([
             'role' => ['required', 'string', Rule::in(['user', 'assistant'])],
-            'content' => ['required', 'string'],
+            'content' => ['required', 'string', 'max:10000'],
+            'client_message_id' => ['nullable', 'string', 'max:100'],
         ]);
+        $message = DB::transaction(function () use ($conversationId, $validated): AiChatMessage {
+            $conversation = AiChatConversation::query()->lockForUpdate()->find($conversationId);
+            if (! $conversation) {
+                $conversation = AiChatConversation::query()->create(['id' => $conversationId]);
+                $conversation = AiChatConversation::query()->lockForUpdate()->findOrFail($conversationId);
+            }
 
-        $conversation = AiChatConversation::query()->firstOrCreate([
-            'id' => $conversationId,
-        ]);
+            $clientMessageId = $validated['client_message_id'] ?? null;
+            if (filled($clientMessageId)) {
+                $existing = AiChatMessage::query()
+                    ->where('ai_chat_conversation_id', $conversationId)
+                    ->where('client_message_id', $clientMessageId)
+                    ->first();
+                if ($existing) {
+                    return $existing;
+                }
+            }
 
-        $message = $conversation->messages()->create($validated);
-        $conversation->touch();
+            $recentDuplicate = AiChatMessage::query()
+                ->where('ai_chat_conversation_id', $conversationId)
+                ->where('role', $validated['role'])
+                ->where('content', $validated['content'])
+                ->where('created_at', '>=', now()->subSeconds(5))
+                ->latest('id')
+                ->first();
+            if ($recentDuplicate) {
+                return $recentDuplicate;
+            }
+
+            $message = $conversation->messages()->create([
+                'role' => $validated['role'],
+                'content' => $validated['content'],
+                'client_message_id' => $clientMessageId,
+            ]);
+            $conversation->touch();
+
+            return $message;
+        });
 
         return response()->json([
             'data' => $this->messagePayload($message),
@@ -85,38 +118,54 @@ class AiChatMemoryController extends Controller
             'visitor.whatsapp' => ['nullable', 'string', 'max:30'],
             'study_program_interest' => ['nullable', 'string', 'max:255'],
             'score' => ['required', 'integer', 'min:0', 'max:100'],
-            'status' => ['required', 'string', Rule::in(['warm', 'qualified', 'hot', 'contact_requested'])],
+            'status' => ['required', 'string', Rule::in(['cold', 'warm', 'qualified', 'hot', 'contact_requested'])],
             'qualification' => ['nullable', 'array'],
             'contact_consent' => ['nullable', 'boolean'],
+            'qualification_key' => ['nullable', 'string', 'max:100'],
         ]);
+        $lead = DB::transaction(function () use ($conversationId, $validated): AiChatLead {
+            $conversation = AiChatConversation::query()->lockForUpdate()->find($conversationId);
+            if (! $conversation) {
+                $conversation = AiChatConversation::query()->create(['id' => $conversationId]);
+                $conversation = AiChatConversation::query()->lockForUpdate()->findOrFail($conversationId);
+            }
+            $this->updateVisitorProfile($conversation, $validated['visitor'] ?? []);
 
-        $conversation = AiChatConversation::query()->firstOrCreate([
-            'id' => $conversationId,
-        ]);
-        $this->updateVisitorProfile($conversation, $validated['visitor'] ?? []);
+            $qualificationKey = $validated['qualification_key'] ?? null;
+            if (filled($qualificationKey) && $conversation->last_qualification_key === $qualificationKey) {
+                $existingLead = AiChatLead::query()
+                    ->where('ai_chat_conversation_id', $conversation->id)
+                    ->first();
 
-        $consentedAt = ($validated['contact_consent'] ?? false) ? now() : $conversation->contact_consent_at;
-        $conversation->fill([
-            'lead_status' => $validated['status'],
-            'lead_score' => $validated['score'],
-            'lead_interest' => $validated['study_program_interest'] ?? $conversation->lead_interest,
-            'lead_qualified_at' => now(),
-            'contact_consent_at' => $consentedAt,
-        ])->save();
+                if ($existingLead) {
+                    return $existingLead;
+                }
+            }
 
-        $lead = AiChatLead::query()->updateOrCreate(
-            ['ai_chat_conversation_id' => $conversation->id],
-            [
-                'name' => $conversation->visitor_name,
-                'email' => $conversation->visitor_email,
-                'whatsapp' => $conversation->visitor_whatsapp,
-                'study_program_interest' => $validated['study_program_interest'] ?? $conversation->lead_interest,
-                'score' => $validated['score'],
-                'status' => $validated['status'],
-                'qualification' => $validated['qualification'] ?? [],
-                'consented_at' => $consentedAt,
-            ],
-        );
+            $consentedAt = ($validated['contact_consent'] ?? false) ? now() : $conversation->contact_consent_at;
+            $conversation->fill([
+                'lead_status' => $validated['status'],
+                'lead_score' => $validated['score'],
+                'lead_interest' => $validated['study_program_interest'] ?? $conversation->lead_interest,
+                'lead_qualified_at' => now(),
+                'contact_consent_at' => $consentedAt,
+                'last_qualification_key' => $qualificationKey ?: $conversation->last_qualification_key,
+            ])->save();
+
+            return AiChatLead::query()->updateOrCreate(
+                ['ai_chat_conversation_id' => $conversation->id],
+                [
+                    'name' => $conversation->visitor_name,
+                    'email' => $conversation->visitor_email,
+                    'whatsapp' => $conversation->visitor_whatsapp,
+                    'study_program_interest' => $validated['study_program_interest'] ?? $conversation->lead_interest,
+                    'score' => $validated['score'],
+                    'status' => $validated['status'],
+                    'qualification' => $validated['qualification'] ?? [],
+                    'consented_at' => $consentedAt,
+                ],
+            );
+        });
 
         return response()->json([
             'data' => $this->leadPayload($lead->fresh()),

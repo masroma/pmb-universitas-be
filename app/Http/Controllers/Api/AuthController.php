@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\Pmb\AccountRegisteredMail;
 use App\Models\User;
+use App\Services\PmbMailService;
+use App\Support\CampusBranding;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -28,6 +31,12 @@ class AuthController extends Controller
             'password' => $payload['password'],
             'role' => 'mahasiswa',
         ]);
+
+        $campusSetting = CampusBranding::setting();
+        app(PmbMailService::class)->sendToUser(
+            $user,
+            new AccountRegisteredMail($user, $campusSetting),
+        );
 
         return response()->json($this->authPayload($user), 201);
     }

@@ -11,6 +11,7 @@ class AiChatMessage extends Model
         'ai_chat_conversation_id',
         'role',
         'content',
+        'client_message_id',
     ];
 
     public function conversation(): BelongsTo
