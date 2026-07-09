@@ -22,6 +22,14 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'confirmed', Password::min(8)],
+        ], [
+            'name.required' => 'Nama lengkap wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email ini sudah terdaftar. Silakan login atau gunakan email lain.',
+            'password.required' => 'Password wajib diisi.',
+            'password.confirmed' => 'Konfirmasi password tidak sama.',
+            'password.min' => 'Password minimal 8 karakter.',
         ]);
 
         $user = User::query()->create([
@@ -46,13 +54,17 @@ class AuthController extends Controller
         $payload = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
+        ], [
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'password.required' => 'Password wajib diisi.',
         ]);
 
         $user = User::query()->where('email', $payload['email'])->first();
 
         if (! $user || ! Hash::check($payload['password'], $user->password)) {
             return response()->json([
-                'message' => 'Email atau password tidak sesuai.',
+                'message' => 'Email atau password salah. Periksa kembali dan coba lagi.',
             ], 422);
         }
 
