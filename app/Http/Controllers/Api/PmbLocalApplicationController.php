@@ -503,6 +503,7 @@ class PmbLocalApplicationController extends Controller
             'formPaymentStatus' => $application->form_payment_status ?? PmbLocalApplication::FORM_PAYMENT_PENDING,
             'formPaymentAmount' => (int) ($application->form_payment_amount ?? 0),
             'virtualAccountNumber' => $this->virtualAccountNumber($application),
+            'virtualAccounts' => $this->virtualAccounts($application),
             'formPaidAt' => $application->form_paid_at?->toDateTimeString(),
             'formPaymentNote' => $application->form_payment_note,
             'academicPeriodId' => $application->academic_period_id,
@@ -680,6 +681,20 @@ class PmbLocalApplicationController extends Controller
         $sequence = str_pad((string) $application->id, 8, '0', STR_PAD_LEFT);
 
         return $institutionCode.$year.$sequence;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function virtualAccounts(PmbLocalApplication $application): array
+    {
+        $base = $this->virtualAccountNumber($application);
+
+        return [
+            'bca' => '014'.$base,
+            'mandiri' => '008'.$base,
+            'cimb' => '022'.$base,
+        ];
     }
 
     private function userFromBearerToken(Request $request): ?User
