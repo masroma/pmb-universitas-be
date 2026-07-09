@@ -21,5 +21,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $exception, $request) {
+            if ($request->is('admin/*')) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->withErrors([
+                        'upload' => 'Ukuran data terlalu besar. Logo maks. 2 MB, gambar hero maks. 4 MB, brosur maks. 10 MB.',
+                    ]);
+            }
+
+            return null;
+        });
     })->create();

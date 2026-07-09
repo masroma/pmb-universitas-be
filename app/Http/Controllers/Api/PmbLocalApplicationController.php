@@ -254,7 +254,9 @@ class PmbLocalApplicationController extends Controller
             'cascade_selection.registrationFee' => ['nullable', 'integer'],
             'cascade_selection.registrationStartsAt' => ['nullable', 'string', 'max:30'],
             'cascade_selection.registrationEndsAt' => ['nullable', 'string', 'max:30'],
-            'cascade_selection.openStudyProgramId' => ['nullable', 'integer'],
+            'cascade_selection.studyProgramId' => ['nullable', 'integer'],
+            'cascade_selection.jenisPendaftaranValue' => ['nullable', 'string', 'max:100'],
+            'cascade_selection.jalurMasukId' => ['nullable', 'integer'],
         ];
     }
 
@@ -275,11 +277,14 @@ class PmbLocalApplicationController extends Controller
         $cascade = collect($payload['cascade_selection'] ?? [])
             ->only([
                 'jenjang',
+                'studyProgramId',
                 'programStudi',
                 'lokasi',
                 'jenisPendaftaran',
+                'jenisPendaftaranValue',
                 'waktuPerkuliahan',
                 'jalurMasuk',
+                'jalurMasukId',
                 'gelombang',
                 'registrationFee',
                 'registrationStartsAt',

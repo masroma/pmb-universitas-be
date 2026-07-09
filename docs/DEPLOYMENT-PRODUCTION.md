@@ -24,6 +24,37 @@ Panduan ini menjelaskan deployment minimum untuk backend Laravel, frontend Nuxt,
    - `php artisan pmb:production-check`
    - akses `/api/health`
 
+### Nginx + PHP (wajib untuk admin upload)
+
+Jika admin muncul **413 Request Entity Too Large** saat simpan data/upload file, naikkan limit di nginx **dan** PHP.
+
+Contoh site config ada di `deploy/nginx/pmb-universitas.conf`. Minimal tambahkan di blok `server` nginx:
+
+```nginx
+client_max_body_size 25M;
+```
+
+Lalu set PHP-FPM (`/etc/php/8.3/fpm/php.ini` atau pool site):
+
+```ini
+upload_max_filesize = 20M
+post_max_size = 25M
+```
+
+Reload service:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+sudo systemctl reload php8.3-fpm
+```
+
+Catatan:
+
+- Error **413 dari nginx** berarti request diblokir sebelum sampai Laravel.
+- File `public/.user.ini` ikut disertakan, tetapi di production tetap atur `php.ini`/PHP-FPM.
+- Upload admin: logo max 2 MB, hero max 4 MB, brosur max 10 MB.
+
 ## Frontend Nuxt
 
 1. Set `NUXT_PUBLIC_API_BASE=https://domain-backend/api`.

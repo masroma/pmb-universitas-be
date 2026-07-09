@@ -10,7 +10,13 @@
         $labelClass = 'text-sm font-semibold text-slate-700';
     @endphp
 
-    <form method="POST" action="{{ route('admin.settings.update') }}" enctype="multipart/form-data" class="space-y-6">
+    <form
+        id="settings-form"
+        method="POST"
+        action="{{ route('admin.settings.update') }}"
+        class="space-y-6"
+        onsubmit="prepareSettingsSubmit(event)"
+    >
         @csrf
         @method('PUT')
 
@@ -24,6 +30,10 @@
                 </ul>
             </div>
         @endif
+
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            Upload file: logo maks. 2 MB, gambar hero maks. 4 MB. Jika muncul error <strong>413 Request Entity Too Large</strong>, tim server perlu menaikkan limit nginx (`client_max_body_size 25M`).
+        </div>
 
         <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <div class="flex flex-col gap-2 border-b border-slate-100 pb-6">
@@ -179,4 +189,17 @@
             </button>
         </div>
     </form>
+
+    <script>
+        function prepareSettingsSubmit(event) {
+            const form = event.target
+            const hasFile = ['logo_path', 'hero_image_path'].some((name) => {
+                const input = form.querySelector(`[name="${name}"]`)
+
+                return input?.files?.length > 0
+            })
+
+            form.enctype = hasFile ? 'multipart/form-data' : 'application/x-www-form-urlencoded'
+        }
+    </script>
 @endsection
