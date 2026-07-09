@@ -86,6 +86,7 @@ class SevimaPmbSyncService
         }
 
         $this->refreshLandingTables();
+        app(PmbRegistrationCascadeSyncService::class)->syncFromSevimaRecords();
 
         return $counts;
     }

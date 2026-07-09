@@ -243,6 +243,18 @@ class PmbLocalApplicationController extends Controller
             'province' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
             'applicant_note' => ['nullable', 'string'],
+            'cascade_selection' => ['nullable', 'array'],
+            'cascade_selection.jenjang' => ['nullable', 'string', 'max:10'],
+            'cascade_selection.programStudi' => ['nullable', 'string', 'max:255'],
+            'cascade_selection.lokasi' => ['nullable', 'string', 'max:100'],
+            'cascade_selection.jenisPendaftaran' => ['nullable', 'string', 'max:100'],
+            'cascade_selection.waktuPerkuliahan' => ['nullable', 'string', 'max:255'],
+            'cascade_selection.jalurMasuk' => ['nullable', 'string', 'max:255'],
+            'cascade_selection.gelombang' => ['nullable', 'string', 'max:100'],
+            'cascade_selection.registrationFee' => ['nullable', 'integer'],
+            'cascade_selection.registrationStartsAt' => ['nullable', 'string', 'max:30'],
+            'cascade_selection.registrationEndsAt' => ['nullable', 'string', 'max:30'],
+            'cascade_selection.openStudyProgramId' => ['nullable', 'integer'],
         ];
     }
 
@@ -260,26 +272,53 @@ class PmbLocalApplicationController extends Controller
         $snapshot['registrationPathId'] = $pathId;
         $snapshot['registrationPathName'] = $pathName;
 
+        $cascade = collect($payload['cascade_selection'] ?? [])
+            ->only([
+                'jenjang',
+                'programStudi',
+                'lokasi',
+                'jenisPendaftaran',
+                'waktuPerkuliahan',
+                'jalurMasuk',
+                'gelombang',
+                'registrationFee',
+                'registrationStartsAt',
+                'registrationEndsAt',
+                'openStudyProgramId',
+            ])
+            ->filter(fn ($value): bool => filled($value))
+            ->all();
+
+        if ($cascade !== []) {
+            $snapshot['cascade'] = $cascade;
+        }
+
+        $campusName = $cascade['lokasi'] ?? $programOption->campus_name;
+        $studyProgramName = $cascade['programStudi'] ?? $programOption->study_program_name;
+        $registrationPathName = $cascade['jalurMasuk'] ?? $pathName;
+        $studySystemName = $cascade['waktuPerkuliahan'] ?? $programOption->class_name;
+        $registrationPeriodName = $cascade['gelombang'] ?? $programOption->wave_name;
+
         return [
             'academic_period_id' => (string) $programOption->period_id,
             'academic_period_name' => $programOption->period_name,
             'registration_period_id' => $programOption->wave_id ? (string) $programOption->wave_id : null,
-            'registration_period_name' => $programOption->wave_name,
+            'registration_period_name' => $registrationPeriodName,
             'program_option_id' => $programOption->registration_option_id,
             'pmb_admission_period_id' => $programOption->period_id,
             'pmb_wave_id' => $programOption->wave_id,
             'pmb_registration_option_id' => $programOption->registration_option_id,
             'campus_id' => $programOption->campus_id,
-            'campus_name' => $programOption->campus_name,
+            'campus_name' => $campusName,
             'standalone_study_program_id' => $programOption->study_program_id,
             'admission_path_id' => $pathId,
             'class_type_id' => $programOption->class_type_id,
             'study_program_id' => (string) $programOption->study_program_id,
-            'study_program_name' => $programOption->study_program_name,
+            'study_program_name' => $studyProgramName,
             'registration_path_id' => (string) $pathId,
-            'registration_path_name' => $pathName,
+            'registration_path_name' => $registrationPathName,
             'study_system_id' => $programOption->class_type_id ? (string) $programOption->class_type_id : null,
-            'study_system_name' => $programOption->class_name,
+            'study_system_name' => $studySystemName,
             'name' => $payload['name'] ?? null,
             'email' => $payload['email'] ?? null,
             'phone' => $payload['phone'] ?? null,

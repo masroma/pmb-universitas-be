@@ -49,6 +49,7 @@ class DatabaseSeeder extends Seeder
         $this->call(TuitionFeeSeeder::class);
         $this->call(StandalonePmbSeeder::class);
         $this->call(AdmissionPathSeeder::class);
+        $this->call(PmbCascadeDemoSeeder::class);
         $this->call(StudentPortalUserSeeder::class);
     }
 }

@@ -41,6 +41,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function (): v
         Route::delete('/{resource}/{id}', [MasterPmbController::class, 'destroy'])->name('destroy');
     });
     Route::get('/pendaftaran-dibuka', [PmbCatalogController::class, 'openedRegistrations'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.opened-registrations');
+    Route::post('/pendaftaran-dibuka/sync', [PmbCatalogController::class, 'syncOpenedRegistrations'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.opened-registrations.sync');
     Route::redirect('/pendaftar', '/admin/pendaftaran-lokal')->name('pmb-catalog.applicants');
     Route::get('/program-studi', [PmbCatalogController::class, 'studyPrograms'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.study-programs');
     Route::get('/periode', [PmbCatalogController::class, 'periods'])->middleware('admin.role:super_admin,admin_pmb')->name('pmb-catalog.periods');

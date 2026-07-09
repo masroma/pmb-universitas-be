@@ -35,7 +35,7 @@
             <div class="flex flex-col gap-4 border-b border-slate-100 p-5 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                     <h3 class="text-lg font-bold text-slate-950">Daftar Pendaftaran</h3>
-                    <p class="mt-1 text-sm text-slate-500">Filter berdasarkan status atau cari nama, email, NIK, periode, dan prodi.</p>
+                    <p class="mt-1 text-sm text-slate-500">Filter berdasarkan status atau cari nama, email, NIK, jenjang, prodi, lokasi, jenis, dan jalur.</p>
                 </div>
                 <div class="flex flex-col gap-2 lg:flex-row">
                 <form method="GET" action="{{ route('admin.local-applications.index') }}" class="grid gap-2 sm:grid-cols-[13rem_16rem_auto]">
@@ -80,6 +80,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($applications as $application)
                             @php
+                                $cascade = \App\Support\PmbCascadeSnapshot::fromApplication($application);
                                 $badgeClass = match ($application->status) {
                                     'verified' => 'bg-emerald-50 text-emerald-700 ring-emerald-100',
                                     'submitted' => 'bg-amber-50 text-amber-700 ring-amber-100',
@@ -93,9 +94,10 @@
                                     <p class="mt-1 text-xs text-slate-500">NIK: {{ $application->nik ?: '-' }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-slate-600">
-                                    <p class="font-semibold text-slate-800">{{ $application->study_program_name ?: '-' }}</p>
-                                    <p class="mt-1 text-xs">{{ $application->campus_name ?: 'Lokasi belum tersedia' }} · {{ $application->registration_period_name ?: '-' }}</p>
-                                    <p class="mt-1 text-xs">{{ $application->registration_path_name ?: '-' }} / {{ $application->study_system_name ?: '-' }}</p>
+                                    <p class="font-semibold text-slate-800">{{ $cascade['jenjang'] ? $cascade['jenjang'].' · ' : '' }}{{ $cascade['programStudi'] ?: '-' }}</p>
+                                    <p class="mt-1 text-xs">{{ $cascade['lokasi'] ?: 'Lokasi belum tersedia' }} · {{ $cascade['gelombang'] ?: '-' }}</p>
+                                    <p class="mt-1 text-xs">{{ $cascade['jenisPendaftaran'] ?: '-' }} · {{ $cascade['waktuPerkuliahan'] ?: '-' }}</p>
+                                    <p class="mt-1 text-xs font-semibold text-slate-700">{{ $cascade['jalurMasuk'] ?: '-' }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-slate-600">
                                     <p>{{ $application->email ?: '-' }}</p>

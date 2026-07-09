@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\PmbOpenStudyProgram;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -325,6 +326,7 @@ class AiPmbDataController extends Controller
     public function registrationOptions(): JsonResponse
     {
         $rows = $this->registrationOptionRows();
+        $cascadeOptions = $this->cascadeOptionRows();
 
         return response()->json([
             'data' => [
@@ -367,8 +369,119 @@ class AiPmbDataController extends Controller
                     ])
                     ->values()
                     ->all(),
+                'cascadeOptions' => $cascadeOptions,
+                'registrationFlow' => [
+                    'steps' => [
+                        'Pilih jenjang (S1/S2)',
+                        'Pilih program studi',
+                        'Pilih lokasi kampus',
+                        'Pilih jenis pendaftaran',
+                        'Pilih waktu perkuliahan / kelas',
+                        'Pilih jalur masuk',
+                    ],
+                    'source' => 'pmb_open_study_programs',
+                ],
             ],
         ]);
+    }
+
+    public function openRegistrations(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'items' => $this->cascadeOptionRows(),
+                'registrationFlow' => [
+                    'steps' => [
+                        'Pilih jenjang (S1/S2)',
+                        'Pilih program studi',
+                        'Pilih lokasi kampus',
+                        'Pilih jenis pendaftaran',
+                        'Pilih waktu perkuliahan / kelas',
+                        'Pilih jalur masuk',
+                    ],
+                ],
+                'jenjangOptions' => PmbOpenStudyProgram::query()
+                    ->active()
+                    ->whereNotNull('jenjang_program_studi')
+                    ->distinct()
+                    ->orderBy('jenjang_program_studi')
+                    ->pluck('jenjang_program_studi')
+                    ->values()
+                    ->all(),
+                'lokasiOptions' => PmbOpenStudyProgram::query()
+                    ->active()
+                    ->whereNotNull('lokasi')
+                    ->distinct()
+                    ->orderBy('lokasi')
+                    ->pluck('lokasi')
+                    ->values()
+                    ->all(),
+            ],
+        ]);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function cascadeOptionRows(): array
+    {
+        $jenisKeys = [
+            'Jalur SMA/SMK',
+            'Pindahan',
+            'RPL Perolehan SKS',
+            'RPL Transfer SKS',
+        ];
+
+        return PmbOpenStudyProgram::query()
+            ->active()
+            ->leftJoin('pmb_synced_registration_periods', 'pmb_synced_registration_periods.sevima_id', '=', 'pmb_open_study_programs.id_periode_pendaftaran')
+            ->orderBy('pmb_open_study_programs.jenjang_program_studi')
+            ->orderBy('pmb_open_study_programs.program_studi')
+            ->orderBy('pmb_open_study_programs.lokasi')
+            ->orderBy('pmb_open_study_programs.nama_periode_pendaftaran')
+            ->get([
+                'pmb_open_study_programs.id',
+                'pmb_open_study_programs.jenjang_program_studi',
+                'pmb_open_study_programs.id_program_studi',
+                'pmb_open_study_programs.program_studi',
+                'pmb_open_study_programs.lokasi',
+                'pmb_open_study_programs.nama_periode_pendaftaran',
+                'pmb_open_study_programs.jalur_pendaftaran',
+                'pmb_open_study_programs.id_jalur_pendaftaran',
+                'pmb_open_study_programs.gelombang',
+                'pmb_open_study_programs.registration_fee',
+                'pmb_open_study_programs.is_active',
+                'pmb_synced_registration_periods.tanggal_awal_pendaftaran',
+                'pmb_synced_registration_periods.tanggal_akhir_pendaftaran',
+            ])
+            ->map(function ($row) use ($jenisKeys): array {
+                $jenjang = (string) ($row->jenjang_program_studi ?? '');
+                $jalur = (string) ($row->jalur_pendaftaran ?? '');
+                $jenis = $jenjang === 'S2'
+                    ? 'Lulusan S1'
+                    : (in_array($jalur, $jenisKeys, true) ? $jalur : null);
+
+                return [
+                    'id' => $row->id,
+                    'programLevel' => $jenjang,
+                    'studyProgramId' => $row->id_program_studi,
+                    'studyProgramName' => $row->program_studi,
+                    'campusName' => $row->lokasi,
+                    'jenisPendaftaran' => $jenis,
+                    'waktuPerkuliahan' => $row->nama_periode_pendaftaran,
+                    'studySystemName' => $row->nama_periode_pendaftaran,
+                    'registrationPathId' => $row->id_jalur_pendaftaran,
+                    'registrationPathName' => $jalur,
+                    'registrationPeriodName' => $row->gelombang,
+                    'fee' => (int) $row->registration_fee,
+                    'registrationFee' => (int) $row->registration_fee,
+                    'registrationStartsAt' => $row->tanggal_awal_pendaftaran,
+                    'registrationEndsAt' => $row->tanggal_akhir_pendaftaran,
+                    'isActive' => (bool) $row->is_active,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function contentResponse(string $category): JsonResponse

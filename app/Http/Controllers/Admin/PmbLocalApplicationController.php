@@ -10,6 +10,7 @@ use App\Models\PmbLocalApplication;
 use App\Services\PmbMailService;
 use App\Support\AuditLogger;
 use App\Support\CampusBranding;
+use App\Support\PmbCascadeSnapshot;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -32,7 +33,13 @@ class PmbLocalApplicationController extends Controller
                     ->orWhere('phone', 'like', "%{$search}%")
                     ->orWhere('nik', 'like', "%{$search}%")
                     ->orWhere('registration_period_name', 'like', "%{$search}%")
-                    ->orWhere('study_program_name', 'like', "%{$search}%");
+                    ->orWhere('study_program_name', 'like', "%{$search}%")
+                    ->orWhere('campus_name', 'like', "%{$search}%")
+                    ->orWhere('registration_path_name', 'like', "%{$search}%")
+                    ->orWhere('study_system_name', 'like', "%{$search}%")
+                    ->orWhere('registration_snapshot->cascade->jenjang', 'like', "%{$search}%")
+                    ->orWhere('registration_snapshot->cascade->jenisPendaftaran', 'like', "%{$search}%")
+                    ->orWhere('registration_snapshot->cascade->waktuPerkuliahan', 'like', "%{$search}%");
             }))
             ->latest('submitted_at')
             ->latest('id')
@@ -59,6 +66,7 @@ class PmbLocalApplicationController extends Controller
             'application' => $application,
             'campusSetting' => $this->campusSetting(),
             'statusLabels' => $this->statusLabels(),
+            'cascade' => PmbCascadeSnapshot::fromApplication($application),
         ]);
     }
 
@@ -102,22 +110,26 @@ class PmbLocalApplicationController extends Controller
 
         return response()->streamDownload(function (): void {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Nama', 'Email', 'WhatsApp', 'Status', 'Kampus', 'Prodi', 'Jalur', 'Kelas', 'Periode', 'Submitted At']);
+            fputcsv($handle, ['Nama', 'Email', 'WhatsApp', 'Status', 'Jenjang', 'Kampus', 'Prodi', 'Jenis Pendaftaran', 'Waktu/Kelas', 'Jalur Masuk', 'Gelombang', 'Submitted At']);
 
             PmbLocalApplication::query()
                 ->orderByDesc('submitted_at')
                 ->chunk(200, function ($applications) use ($handle): void {
                     foreach ($applications as $application) {
+                        $cascade = PmbCascadeSnapshot::fromApplication($application);
+
                         fputcsv($handle, [
                             $application->name,
                             $application->email,
                             $application->phone,
                             $application->status,
-                            $application->campus_name,
-                            $application->study_program_name,
-                            $application->registration_path_name,
-                            $application->study_system_name,
-                            $application->registration_period_name,
+                            $cascade['jenjang'],
+                            $cascade['lokasi'],
+                            $cascade['programStudi'],
+                            $cascade['jenisPendaftaran'],
+                            $cascade['waktuPerkuliahan'],
+                            $cascade['jalurMasuk'],
+                            $cascade['gelombang'],
                             $application->submitted_at,
                         ]);
                     }

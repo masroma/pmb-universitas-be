@@ -44,35 +44,61 @@
             <div class="space-y-6">
                 <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h3 class="text-lg font-bold text-slate-950">Pilihan Pendaftaran</h3>
+                    <p class="mt-1 text-sm text-slate-500">Urutan pilihan mengikuti form portal: jenjang → prodi → lokasi → jenis → kelas → jalur.</p>
                     <div class="mt-5 grid gap-4 md:grid-cols-2">
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Jenjang</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['jenjang'] ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Program Studi</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['programStudi'] ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Lokasi Kampus</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['lokasi'] ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Jenis Pendaftaran</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['jenisPendaftaran'] ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Waktu Perkuliahan / Kelas</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['waktuPerkuliahan'] ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Jalur Masuk</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['jalurMasuk'] ?: '-' }}</p>
+                        </div>
+                        <div class="{{ $fieldClass }}">
+                            <p class="{{ $labelClass }}">Gelombang</p>
+                            <p class="{{ $valueClass }}">{{ $cascade['gelombang'] ?: $application->registration_period_name ?: '-' }}</p>
+                        </div>
                         <div class="{{ $fieldClass }}">
                             <p class="{{ $labelClass }}">Periode Akademik</p>
                             <p class="{{ $valueClass }}">{{ $application->academic_period_name ?: $application->academic_period_id ?: '-' }}</p>
                         </div>
-                        <div class="{{ $fieldClass }}">
-                            <p class="{{ $labelClass }}">Periode Pendaftaran</p>
-                            <p class="{{ $valueClass }}">{{ $application->registration_period_name ?: '-' }}</p>
-                        </div>
-                        <div class="{{ $fieldClass }}">
-                            <p class="{{ $labelClass }}">Lokasi Kampus</p>
-                            <p class="{{ $valueClass }}">{{ $application->campus_name ?: data_get($snapshot, 'campusName', '-') }}</p>
-                        </div>
-                        <div class="{{ $fieldClass }}">
-                            <p class="{{ $labelClass }}">Program Studi</p>
-                            <p class="{{ $valueClass }}">{{ $application->study_program_name ?: '-' }}</p>
-                        </div>
-                        <div class="{{ $fieldClass }}">
-                            <p class="{{ $labelClass }}">Jalur / Sistem</p>
-                            <p class="{{ $valueClass }}">{{ $application->registration_path_name ?: '-' }} / {{ $application->study_system_name ?: '-' }}</p>
-                        </div>
-                        <div class="{{ $fieldClass }}">
-                            <p class="{{ $labelClass }}">Biaya</p>
+                        <div class="{{ $fieldClass }} md:col-span-2">
+                            <p class="{{ $labelClass }}">Biaya & Periode Pendaftaran</p>
                             <p class="{{ $valueClass }}">
-                                Daftar {{ $rupiah(data_get($snapshot, 'registrationFee', 0)) }} ·
-                                {{ data_get($snapshot, 'installmentCount', '-') }}x {{ $rupiah(data_get($snapshot, 'installmentAmount', 0)) }} ·
-                                Semester {{ $rupiah(data_get($snapshot, 'semesterFee', 0)) }}
+                                Daftar {{ $rupiah($cascade['registrationFee'] ?? data_get($snapshot, 'registrationFee', 0)) }}
+                                @if ($cascade['registrationStartsAt'] || $cascade['registrationEndsAt'])
+                                    · {{ $cascade['registrationStartsAt'] ?: '?' }} s/d {{ $cascade['registrationEndsAt'] ?: '?' }}
+                                @endif
                             </p>
+                            @if (data_get($snapshot, 'installmentCount'))
+                                <p class="mt-2 text-xs text-slate-500">
+                                    Angsuran {{ data_get($snapshot, 'installmentCount', '-') }}x {{ $rupiah(data_get($snapshot, 'installmentAmount', 0)) }}
+                                    · Semester {{ $rupiah(data_get($snapshot, 'semesterFee', 0)) }}
+                                </p>
+                            @endif
                         </div>
+                        @if ($cascade['openStudyProgramId'])
+                            <div class="{{ $fieldClass }} md:col-span-2">
+                                <p class="{{ $labelClass }}">Referensi Data SEVIMA</p>
+                                <p class="{{ $valueClass }}">Open Study Program ID: {{ $cascade['openStudyProgramId'] }}</p>
+                            </div>
+                        @endif
                     </div>
                 </section>
 
