@@ -66,6 +66,7 @@ class PmbLocalApplicationController extends Controller
             'application' => $application,
             'campusSetting' => $this->campusSetting(),
             'statusLabels' => $this->statusLabels(),
+            'formPaymentLabels' => $this->formPaymentLabels(),
             'cascade' => PmbCascadeSnapshot::fromApplication($application),
         ]);
     }
@@ -102,6 +103,50 @@ class PmbLocalApplicationController extends Controller
         return redirect()
             ->route('admin.local-applications.show', $application)
             ->with('status', 'Status pendaftaran berhasil diperbarui.');
+    }
+
+    public function updateFormPayment(Request $request, PmbLocalApplication $application): RedirectResponse
+    {
+        $payload = $request->validate([
+            'form_payment_status' => ['required', 'in:pending,paid'],
+            'form_payment_note' => ['nullable', 'string'],
+        ]);
+
+        $before = $application->only([
+            'form_payment_status',
+            'form_payment_amount',
+            'form_paid_at',
+            'form_paid_by',
+            'form_payment_note',
+        ]);
+
+        $isPaid = $payload['form_payment_status'] === PmbLocalApplication::FORM_PAYMENT_PAID;
+
+        $application->update([
+            'form_payment_status' => $payload['form_payment_status'],
+            'form_payment_note' => $payload['form_payment_note'] ?? null,
+            'form_paid_at' => $isPaid ? now() : null,
+            'form_paid_by' => $isPaid ? $request->user()->id : null,
+        ]);
+
+        AuditLogger::record(
+            'application_form_payment_updated',
+            'pmb_local_applications',
+            $application->id,
+            $before,
+            $application->fresh()->only([
+                'form_payment_status',
+                'form_payment_amount',
+                'form_paid_at',
+                'form_paid_by',
+                'form_payment_note',
+            ]),
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.local-applications.show', $application)
+            ->with('status', 'Status pembayaran formulir berhasil diperbarui.');
     }
 
     public function export(Request $request): StreamedResponse
@@ -149,6 +194,17 @@ class PmbLocalApplicationController extends Controller
             PmbLocalApplication::STATUS_SUBMITTED => 'Menunggu Review',
             PmbLocalApplication::STATUS_VERIFIED => 'Terverifikasi',
             PmbLocalApplication::STATUS_REJECTED => 'Ditolak/Revisi',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function formPaymentLabels(): array
+    {
+        return [
+            PmbLocalApplication::FORM_PAYMENT_PENDING => 'Belum Bayar',
+            PmbLocalApplication::FORM_PAYMENT_PAID => 'Sudah Bayar',
         ];
     }
 

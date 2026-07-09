@@ -13,9 +13,17 @@ class PmbLocalApplication extends Model
     public const STATUS_VERIFIED = 'verified';
     public const STATUS_REJECTED = 'rejected';
 
+    public const FORM_PAYMENT_PENDING = 'pending';
+    public const FORM_PAYMENT_PAID = 'paid';
+
     protected $fillable = [
         'user_id',
         'status',
+        'form_payment_status',
+        'form_payment_amount',
+        'form_paid_at',
+        'form_paid_by',
+        'form_payment_note',
         'academic_period_id',
         'academic_period_name',
         'registration_period_id',
@@ -61,6 +69,7 @@ class PmbLocalApplication extends Model
             'registration_snapshot' => 'array',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'form_paid_at' => 'datetime',
         ];
     }
 
@@ -72,6 +81,11 @@ class PmbLocalApplication extends Model
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function formPaymentVerifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'form_paid_by');
     }
 
     public function documents(): HasMany

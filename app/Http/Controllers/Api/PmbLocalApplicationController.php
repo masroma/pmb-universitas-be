@@ -106,6 +106,10 @@ class PmbLocalApplicationController extends Controller
             return response()->json(['message' => 'Pendaftaran yang sudah submit tidak dapat diedit.'], 422);
         }
 
+        if ($application->exists && $this->requiresFormPayment($application)) {
+            return response()->json(['message' => 'Anda belum membayar formulir pendaftaran.'], 422);
+        }
+
         $payload = $request->validate($this->validationRules(false));
         $programOption = $this->registrationOption((int) ($payload['program_option_id'] ?? 0));
 
@@ -126,6 +130,61 @@ class PmbLocalApplicationController extends Controller
         ]);
     }
 
+    public function storeCascade(Request $request): JsonResponse
+    {
+        $user = $this->userFromBearerToken($request);
+
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $application = $this->applicationForUser($user) ?? new PmbLocalApplication([
+            'user_id' => $user->id,
+            'status' => PmbLocalApplication::STATUS_DRAFT,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+        ]);
+
+        if (! in_array($application->status, [PmbLocalApplication::STATUS_DRAFT, PmbLocalApplication::STATUS_REJECTED], true)) {
+            return response()->json(['message' => 'Pendaftaran yang sudah submit tidak dapat diedit.'], 422);
+        }
+
+        $payload = $request->validate($this->cascadeValidationRules());
+        $programOption = $this->registrationOption((int) $payload['program_option_id']);
+
+        if (! $programOption) {
+            return response()->json(['message' => 'Pilihan program tidak tersedia.'], 422);
+        }
+
+        $admissionPath = $this->admissionPath((int) ($payload['registration_path_id'] ?? 0));
+        $cascade = $payload['cascade_selection'] ?? [];
+        $paymentAmount = (int) ($cascade['registrationFee'] ?? $programOption->registration_fee ?? 0);
+        $previousProgramOptionId = (int) ($application->program_option_id ?? 0);
+        $keepPaid = $application->form_payment_status === PmbLocalApplication::FORM_PAYMENT_PAID
+            && $previousProgramOptionId === (int) $programOption->registration_option_id;
+
+        $application->fill([
+            ...$this->applicationFields([
+                ...$payload,
+                'name' => $payload['name'] ?? $user->name,
+                'email' => $payload['email'] ?? $user->email,
+                'phone' => $payload['phone'] ?? $user->phone,
+            ], $programOption, $admissionPath),
+            'status' => PmbLocalApplication::STATUS_DRAFT,
+            'review_note' => null,
+            'form_payment_status' => $keepPaid ? PmbLocalApplication::FORM_PAYMENT_PAID : PmbLocalApplication::FORM_PAYMENT_PENDING,
+            'form_payment_amount' => $paymentAmount,
+            'form_paid_at' => $keepPaid ? $application->form_paid_at : null,
+            'form_paid_by' => $keepPaid ? $application->form_paid_by : null,
+            'form_payment_note' => $keepPaid ? $application->form_payment_note : null,
+        ])->save();
+
+        return response()->json([
+            'data' => $this->applicationPayload($application->fresh('documents')),
+        ]);
+    }
+
     public function submit(Request $request): JsonResponse
     {
         $user = $this->userFromBearerToken($request);
@@ -138,6 +197,10 @@ class PmbLocalApplicationController extends Controller
 
         if (! $application) {
             return response()->json(['message' => 'Simpan draft pendaftaran terlebih dahulu.'], 422);
+        }
+
+        if ($this->requiresFormPayment($application)) {
+            return response()->json(['message' => 'Anda belum membayar formulir pendaftaran.'], 422);
         }
 
         if (! in_array($application->status, [PmbLocalApplication::STATUS_DRAFT, PmbLocalApplication::STATUS_REJECTED], true)) {
@@ -188,6 +251,10 @@ class PmbLocalApplicationController extends Controller
             return response()->json(['message' => 'Simpan draft pendaftaran sebelum upload dokumen.'], 422);
         }
 
+        if ($this->requiresFormPayment($application)) {
+            return response()->json(['message' => 'Anda belum membayar formulir pendaftaran.'], 422);
+        }
+
         if (! in_array($application->status, [PmbLocalApplication::STATUS_DRAFT, PmbLocalApplication::STATUS_REJECTED], true)) {
             return response()->json(['message' => 'Dokumen tidak dapat diubah setelah pendaftaran disubmit.'], 422);
         }
@@ -217,6 +284,35 @@ class PmbLocalApplicationController extends Controller
         return response()->json([
             'data' => $this->documentPayload($document),
         ], 201);
+    }
+
+    /**
+     * @return array<string, array<int, string>>
+     */
+    private function cascadeValidationRules(): array
+    {
+        return [
+            'program_option_id' => ['required', 'integer', 'exists:pmb_registration_options,id'],
+            'registration_path_id' => ['nullable', 'integer', 'exists:admission_paths,id'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:30'],
+            'cascade_selection' => ['required', 'array'],
+            'cascade_selection.jenjang' => ['required', 'string', 'max:10'],
+            'cascade_selection.programStudi' => ['required', 'string', 'max:255'],
+            'cascade_selection.lokasi' => ['required', 'string', 'max:100'],
+            'cascade_selection.jenisPendaftaran' => ['required', 'string', 'max:100'],
+            'cascade_selection.waktuPerkuliahan' => ['required', 'string', 'max:255'],
+            'cascade_selection.jalurMasuk' => ['required', 'string', 'max:255'],
+            'cascade_selection.jalurMasukId' => ['nullable', 'integer'],
+            'cascade_selection.studyProgramId' => ['nullable', 'integer'],
+            'cascade_selection.jenisPendaftaranValue' => ['nullable', 'string', 'max:100'],
+            'cascade_selection.gelombang' => ['nullable', 'string', 'max:100'],
+            'cascade_selection.registrationFee' => ['nullable', 'integer'],
+            'cascade_selection.registrationStartsAt' => ['nullable', 'string', 'max:30'],
+            'cascade_selection.registrationEndsAt' => ['nullable', 'string', 'max:30'],
+            'cascade_selection.openStudyProgramId' => ['nullable', 'integer'],
+        ];
     }
 
     /**
@@ -400,6 +496,10 @@ class PmbLocalApplicationController extends Controller
         return [
             'id' => $application->id,
             'status' => $application->status,
+            'formPaymentStatus' => $application->form_payment_status ?? PmbLocalApplication::FORM_PAYMENT_PENDING,
+            'formPaymentAmount' => (int) ($application->form_payment_amount ?? 0),
+            'formPaidAt' => $application->form_paid_at?->toDateTimeString(),
+            'formPaymentNote' => $application->form_payment_note,
             'academicPeriodId' => $application->academic_period_id,
             'academicPeriodName' => $application->academic_period_name,
             'registrationPeriodId' => $application->registration_period_id,
@@ -557,6 +657,15 @@ class PmbLocalApplicationController extends Controller
     private function rupiah(int $amount): string
     {
         return 'Rp '.number_format($amount, 0, ',', '.');
+    }
+
+    private function requiresFormPayment(PmbLocalApplication $application): bool
+    {
+        if (! $application->program_option_id) {
+            return false;
+        }
+
+        return ($application->form_payment_status ?? PmbLocalApplication::FORM_PAYMENT_PENDING) !== PmbLocalApplication::FORM_PAYMENT_PAID;
     }
 
     private function userFromBearerToken(Request $request): ?User

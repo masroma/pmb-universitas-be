@@ -143,6 +143,44 @@
 
             <aside class="space-y-6">
                 <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-slate-950">Pembayaran Formulir</h3>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                        Ubah status pembayaran biaya formulir pendaftaran setelah pendaftar melakukan pembayaran.
+                    </p>
+                    <div class="mt-5 rounded-2xl bg-slate-50 p-4">
+                        <p class="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Tagihan</p>
+                        <p class="mt-2 text-lg font-bold text-slate-900">{{ $rupiah($application->form_payment_amount ?? data_get($snapshot, 'registrationFee', 0)) }}</p>
+                        <p class="mt-2 text-sm text-slate-600">
+                            Status saat ini:
+                            <span class="font-bold {{ ($application->form_payment_status ?? 'pending') === 'paid' ? 'text-emerald-700' : 'text-amber-700' }}">
+                                {{ $formPaymentLabels[$application->form_payment_status ?? 'pending'] ?? 'Belum Bayar' }}
+                            </span>
+                        </p>
+                        @if ($application->form_paid_at)
+                            <p class="mt-2 text-xs text-slate-500">Diverifikasi: {{ $application->form_paid_at->format('d M Y H:i') }}</p>
+                        @endif
+                    </div>
+                    <form method="POST" action="{{ route('admin.local-applications.form-payment.update', $application) }}" class="mt-5 space-y-4">
+                        @csrf
+                        @method('PUT')
+                        <div>
+                            <label for="form_payment_status" class="text-sm font-semibold text-slate-700">Status Pembayaran</label>
+                            <select id="form_payment_status" name="form_payment_status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                                <option value="pending" @selected(($application->form_payment_status ?? 'pending') === 'pending')>Belum Bayar</option>
+                                <option value="paid" @selected(($application->form_payment_status ?? 'pending') === 'paid')>Sudah Bayar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="form_payment_note" class="text-sm font-semibold text-slate-700">Catatan Pembayaran</label>
+                            <textarea id="form_payment_note" name="form_payment_note" rows="3" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{{ old('form_payment_note', $application->form_payment_note) }}</textarea>
+                        </div>
+                        <button type="submit" class="w-full rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">
+                            Simpan Pembayaran
+                        </button>
+                    </form>
+                </section>
+
+                <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h3 class="text-lg font-bold text-slate-950">Dokumen</h3>
                     <div class="mt-5 space-y-3">
                         @forelse ($application->documents as $document)

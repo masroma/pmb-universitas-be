@@ -28,6 +28,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function (): v
     Route::get('/pendaftaran-lokal', [PmbLocalApplicationController::class, 'index'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.index');
     Route::get('/pendaftaran-lokal/{application}', [PmbLocalApplicationController::class, 'show'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.show');
     Route::put('/pendaftaran-lokal/{application}/status', [PmbLocalApplicationController::class, 'updateStatus'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.status.update');
+    Route::put('/pendaftaran-lokal/{application}/pembayaran-formulir', [PmbLocalApplicationController::class, 'updateFormPayment'])->middleware('admin.role:super_admin,admin_pmb')->name('local-applications.form-payment.update');
     Route::get('/crm-ai/export', [AiChatLeadController::class, 'export'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.export');
     Route::get('/crm-ai', [AiChatLeadController::class, 'index'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.index');
     Route::get('/crm-ai/{lead}', [AiChatLeadController::class, 'show'])->middleware('admin.role:super_admin,admin_pmb,operator_crm')->name('ai-chat-leads.show');

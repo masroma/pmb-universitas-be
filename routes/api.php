@@ -41,6 +41,7 @@ Route::prefix('registration/cascade')->group(function (): void {
     Route::get('/resolve', [PmbRegistrationCascadeController::class, 'resolve']);
 });
 Route::get('/registration', [PmbLocalApplicationController::class, 'show']);
+Route::post('/registration/cascade', [PmbLocalApplicationController::class, 'storeCascade']);
 Route::post('/registration', [PmbLocalApplicationController::class, 'store']);
 Route::post('/registration/submit', [PmbLocalApplicationController::class, 'submit']);
 Route::post('/registration/documents', [PmbLocalApplicationController::class, 'uploadDocument']);
