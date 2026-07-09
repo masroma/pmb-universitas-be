@@ -21,6 +21,7 @@ class PmbLocalApplication extends Model
         'user_id',
         'status',
         'form_payment_status',
+        'form_payment_bank',
         'form_payment_amount',
         'form_paid_at',
         'form_paid_by',

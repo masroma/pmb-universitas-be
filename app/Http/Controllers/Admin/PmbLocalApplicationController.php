@@ -109,11 +109,13 @@ class PmbLocalApplicationController extends Controller
     {
         $payload = $request->validate([
             'form_payment_status' => ['required', 'in:pending,paid'],
+            'form_payment_bank' => ['nullable', 'in:bca,mandiri,cimb'],
             'form_payment_note' => ['nullable', 'string'],
         ]);
 
         $before = $application->only([
             'form_payment_status',
+            'form_payment_bank',
             'form_payment_amount',
             'form_paid_at',
             'form_paid_by',
@@ -124,6 +126,7 @@ class PmbLocalApplicationController extends Controller
 
         $application->update([
             'form_payment_status' => $payload['form_payment_status'],
+            'form_payment_bank' => $isPaid ? ($payload['form_payment_bank'] ?? null) : null,
             'form_payment_note' => $payload['form_payment_note'] ?? null,
             'form_paid_at' => $isPaid ? now() : null,
             'form_paid_by' => $isPaid ? $request->user()->id : null,
@@ -139,6 +142,7 @@ class PmbLocalApplicationController extends Controller
             $before,
             $application->fresh()->only([
                 'form_payment_status',
+                'form_payment_bank',
                 'form_payment_amount',
                 'form_paid_at',
                 'form_paid_by',

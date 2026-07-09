@@ -171,6 +171,15 @@
                             </select>
                         </div>
                         <div>
+                            <label for="form_payment_bank" class="text-sm font-semibold text-slate-700">Dibayar Melalui Bank</label>
+                            <select id="form_payment_bank" name="form_payment_bank" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                                <option value="">Pilih Bank</option>
+                                <option value="bca" @selected(($application->form_payment_bank ?? '') === 'bca')>BCA</option>
+                                <option value="mandiri" @selected(($application->form_payment_bank ?? '') === 'mandiri')>Mandiri</option>
+                                <option value="cimb" @selected(($application->form_payment_bank ?? '') === 'cimb')>CIMB</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="form_payment_note" class="text-sm font-semibold text-slate-700">Catatan Pembayaran</label>
                             <textarea id="form_payment_note" name="form_payment_note" rows="3" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">{{ old('form_payment_note', $application->form_payment_note) }}</textarea>
                         </div>
