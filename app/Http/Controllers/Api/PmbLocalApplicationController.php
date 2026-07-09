@@ -140,13 +140,17 @@ class PmbLocalApplicationController extends Controller
 
         $application = $this->applicationForUser($user) ?? new PmbLocalApplication([
             'user_id' => $user->id,
-            'status' => PmbLocalApplication::STATUS_DRAFT,
+            'status' => PmbLocalApplication::STATUS_PAYMENT_PENDING,
             'name' => $user->name,
             'email' => $user->email,
             'phone' => $user->phone,
         ]);
 
-        if (! in_array($application->status, [PmbLocalApplication::STATUS_DRAFT, PmbLocalApplication::STATUS_REJECTED], true)) {
+        if (! in_array($application->status, [
+            PmbLocalApplication::STATUS_DRAFT,
+            PmbLocalApplication::STATUS_REJECTED,
+            PmbLocalApplication::STATUS_PAYMENT_PENDING,
+        ], true)) {
             return response()->json(['message' => 'Pendaftaran yang sudah submit tidak dapat diedit.'], 422);
         }
 
@@ -171,7 +175,7 @@ class PmbLocalApplicationController extends Controller
                 'email' => $payload['email'] ?? $user->email,
                 'phone' => $payload['phone'] ?? $user->phone,
             ], $programOption, $admissionPath),
-            'status' => PmbLocalApplication::STATUS_DRAFT,
+            'status' => PmbLocalApplication::STATUS_PAYMENT_PENDING,
             'review_note' => null,
             'form_payment_status' => $keepPaid ? PmbLocalApplication::FORM_PAYMENT_PAID : PmbLocalApplication::FORM_PAYMENT_PENDING,
             'form_payment_amount' => $paymentAmount,
@@ -498,6 +502,7 @@ class PmbLocalApplicationController extends Controller
             'status' => $application->status,
             'formPaymentStatus' => $application->form_payment_status ?? PmbLocalApplication::FORM_PAYMENT_PENDING,
             'formPaymentAmount' => (int) ($application->form_payment_amount ?? 0),
+            'virtualAccountNumber' => $this->virtualAccountNumber($application),
             'formPaidAt' => $application->form_paid_at?->toDateTimeString(),
             'formPaymentNote' => $application->form_payment_note,
             'academicPeriodId' => $application->academic_period_id,
@@ -666,6 +671,15 @@ class PmbLocalApplicationController extends Controller
         }
 
         return ($application->form_payment_status ?? PmbLocalApplication::FORM_PAYMENT_PENDING) !== PmbLocalApplication::FORM_PAYMENT_PAID;
+    }
+
+    private function virtualAccountNumber(PmbLocalApplication $application): string
+    {
+        $institutionCode = '3901';
+        $year = now()->format('y');
+        $sequence = str_pad((string) $application->id, 8, '0', STR_PAD_LEFT);
+
+        return $institutionCode.$year.$sequence;
     }
 
     private function userFromBearerToken(Request $request): ?User

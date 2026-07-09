@@ -127,6 +127,9 @@ class PmbLocalApplicationController extends Controller
             'form_payment_note' => $payload['form_payment_note'] ?? null,
             'form_paid_at' => $isPaid ? now() : null,
             'form_paid_by' => $isPaid ? $request->user()->id : null,
+            'status' => $isPaid
+                ? PmbLocalApplication::STATUS_DRAFT
+                : PmbLocalApplication::STATUS_PAYMENT_PENDING,
         ]);
 
         AuditLogger::record(
@@ -191,6 +194,7 @@ class PmbLocalApplicationController extends Controller
     {
         return [
             PmbLocalApplication::STATUS_DRAFT => 'Draft',
+            PmbLocalApplication::STATUS_PAYMENT_PENDING => 'Menunggu Pembayaran',
             PmbLocalApplication::STATUS_SUBMITTED => 'Menunggu Review',
             PmbLocalApplication::STATUS_VERIFIED => 'Terverifikasi',
             PmbLocalApplication::STATUS_REJECTED => 'Ditolak/Revisi',

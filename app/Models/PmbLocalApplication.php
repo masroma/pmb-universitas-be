@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 class PmbLocalApplication extends Model
 {
     public const STATUS_DRAFT = 'draft';
+    public const STATUS_PAYMENT_PENDING = 'payment_pending';
     public const STATUS_SUBMITTED = 'submitted';
     public const STATUS_VERIFIED = 'verified';
     public const STATUS_REJECTED = 'rejected';
