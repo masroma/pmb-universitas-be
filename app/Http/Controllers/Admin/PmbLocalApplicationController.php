@@ -197,7 +197,7 @@ class PmbLocalApplicationController extends Controller
     private function statusLabels(): array
     {
         return [
-            PmbLocalApplication::STATUS_DRAFT => 'Draft',
+            PmbLocalApplication::STATUS_DRAFT => 'Mengisi Formulir',
             PmbLocalApplication::STATUS_PAYMENT_PENDING => 'Menunggu Pembayaran',
             PmbLocalApplication::STATUS_SUBMITTED => 'Menunggu Review',
             PmbLocalApplication::STATUS_VERIFIED => 'Terverifikasi',
