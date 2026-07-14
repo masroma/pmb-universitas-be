@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\AiChatController;
 use App\Http\Controllers\Api\AiChatMemoryController;
 use App\Http\Controllers\Api\AiPmbDataController;
@@ -8,6 +9,7 @@ use App\Http\Controllers\Api\CampusSettingController;
 use App\Http\Controllers\Api\PmbInformationSectionController;
 use App\Http\Controllers\Api\PmbLandingContentController;
 use App\Http\Controllers\Api\PmbRegistrationCascadeController;
+use App\Http\Controllers\Api\PmbCbtController;
 use App\Http\Controllers\Api\PmbLocalApplicationController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -30,6 +32,10 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::get('/me', [AuthController::class, 'me']);
 Route::post('/logout', [AuthController::class, 'logout']);
+Route::put('/profile', [ProfileController::class, 'update']);
+Route::put('/profile/password', [ProfileController::class, 'updatePassword']);
+Route::post('/profile/photo', [ProfileController::class, 'updatePhoto']);
+Route::delete('/profile/photo', [ProfileController::class, 'deletePhoto']);
 Route::get('/registration/options', [PmbLocalApplicationController::class, 'options']);
 Route::prefix('registration/cascade')->group(function (): void {
     Route::get('/jenjang', [PmbRegistrationCascadeController::class, 'jenjang']);
@@ -45,6 +51,10 @@ Route::post('/registration/cascade', [PmbLocalApplicationController::class, 'sto
 Route::post('/registration', [PmbLocalApplicationController::class, 'store']);
 Route::post('/registration/submit', [PmbLocalApplicationController::class, 'submit']);
 Route::post('/registration/documents', [PmbLocalApplicationController::class, 'uploadDocument']);
+Route::get('/registration/cbt', [PmbCbtController::class, 'show']);
+Route::post('/registration/cbt/start', [PmbCbtController::class, 'start']);
+Route::get('/registration/cbt/attempts/{attemptId}', [PmbCbtController::class, 'attempt']);
+Route::post('/registration/cbt/attempts/{attemptId}/submit', [PmbCbtController::class, 'submit']);
 
 
 Route::prefix('ai')

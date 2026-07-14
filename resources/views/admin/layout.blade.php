@@ -86,6 +86,10 @@
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">KP</span>
                         Konten PMB
                     </a>
+                    <a href="{{ route('admin.pmb-cbt.index') }}" class="{{ request()->routeIs('admin.pmb-cbt.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">CT</span>
+                        Kelola CBT
+                    </a>
                     <a href="{{ route('admin.master-pmb.index', 'tuition-fees') }}" class="{{ request()->routeIs('admin.tuition-fees.*') ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-100' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }} flex min-w-fit items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition">
                         <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-xs shadow-sm ring-1 ring-slate-200">BK</span>
                         Biaya Kuliah
@@ -157,6 +161,16 @@
                     @if (session('status'))
                         <div class="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-semibold text-emerald-700">
                             {{ session('status') }}
+                        </div>
+                    @endif
+                    @if (session('error'))
+                        <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
+                            {{ session('error') }}
+                        </div>
+                    @endif
+                    @if ($errors->any())
+                        <div class="mb-6 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
+                            {{ $errors->first() }}
                         </div>
                     @endif
 

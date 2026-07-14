@@ -51,5 +51,6 @@ class DatabaseSeeder extends Seeder
         $this->call(AdmissionPathSeeder::class);
         $this->call(PmbCascadeDemoSeeder::class);
         $this->call(StudentPortalUserSeeder::class);
+        $this->call(PmbCbtSeeder::class);
     }
 }

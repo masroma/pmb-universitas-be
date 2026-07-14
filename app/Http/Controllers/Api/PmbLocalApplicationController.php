@@ -81,6 +81,16 @@ class PmbLocalApplicationController extends Controller
 
         $application = $this->applicationForUser($user);
 
+        if (
+            $application
+            && ($application->form_payment_status ?? 'pending') === PmbLocalApplication::FORM_PAYMENT_PAID
+            && ($application->cbt_status ?? PmbLocalApplication::CBT_STATUS_LOCKED) === PmbLocalApplication::CBT_STATUS_LOCKED
+        ) {
+            $application->update(['cbt_status' => PmbLocalApplication::CBT_STATUS_AVAILABLE]);
+            $application->refresh();
+            $application->load('documents');
+        }
+
         return response()->json([
             'data' => $application ? $this->applicationPayload($application) : null,
         ]);
@@ -108,6 +118,10 @@ class PmbLocalApplicationController extends Controller
 
         if ($application->exists && $this->requiresFormPayment($application)) {
             return response()->json(['message' => 'Anda belum membayar formulir pendaftaran.'], 422);
+        }
+
+        if ($application->exists && $this->requiresCbtPass($application)) {
+            return response()->json(['message' => 'Anda harus lulus tes CBT sebelum mengisi biodata.'], 422);
         }
 
         $payload = $request->validate($this->validationRules(false));
@@ -175,7 +189,7 @@ class PmbLocalApplicationController extends Controller
                 'email' => $payload['email'] ?? $user->email,
                 'phone' => $payload['phone'] ?? $user->phone,
             ], $programOption, $admissionPath),
-            'status' => PmbLocalApplication::STATUS_PAYMENT_PENDING,
+            'status' => $keepPaid ? PmbLocalApplication::STATUS_DRAFT : PmbLocalApplication::STATUS_PAYMENT_PENDING,
             'review_note' => null,
             'form_payment_status' => $keepPaid ? PmbLocalApplication::FORM_PAYMENT_PAID : PmbLocalApplication::FORM_PAYMENT_PENDING,
             'form_payment_bank' => $keepPaid ? $application->form_payment_bank : null,
@@ -183,6 +197,12 @@ class PmbLocalApplicationController extends Controller
             'form_paid_at' => $keepPaid ? $application->form_paid_at : null,
             'form_paid_by' => $keepPaid ? $application->form_paid_by : null,
             'form_payment_note' => $keepPaid ? $application->form_payment_note : null,
+            'cbt_status' => $keepPaid
+                ? ($application->cbt_status ?? PmbLocalApplication::CBT_STATUS_AVAILABLE)
+                : PmbLocalApplication::CBT_STATUS_LOCKED,
+            'cbt_score' => $keepPaid ? $application->cbt_score : null,
+            'cbt_attempt_count' => $keepPaid ? $application->cbt_attempt_count : 0,
+            'cbt_passed_at' => $keepPaid ? $application->cbt_passed_at : null,
         ])->save();
 
         return response()->json([
@@ -206,6 +226,10 @@ class PmbLocalApplicationController extends Controller
 
         if ($this->requiresFormPayment($application)) {
             return response()->json(['message' => 'Anda belum membayar formulir pendaftaran.'], 422);
+        }
+
+        if ($this->requiresCbtPass($application)) {
+            return response()->json(['message' => 'Anda harus lulus tes CBT sebelum submit pendaftaran.'], 422);
         }
 
         if (! in_array($application->status, [PmbLocalApplication::STATUS_DRAFT, PmbLocalApplication::STATUS_REJECTED], true)) {
@@ -258,6 +282,10 @@ class PmbLocalApplicationController extends Controller
 
         if ($this->requiresFormPayment($application)) {
             return response()->json(['message' => 'Anda belum membayar formulir pendaftaran.'], 422);
+        }
+
+        if ($this->requiresCbtPass($application)) {
+            return response()->json(['message' => 'Anda harus lulus tes CBT sebelum upload dokumen.'], 422);
         }
 
         if (! in_array($application->status, [PmbLocalApplication::STATUS_DRAFT, PmbLocalApplication::STATUS_REJECTED], true)) {
@@ -508,6 +536,10 @@ class PmbLocalApplicationController extends Controller
             'virtualAccounts' => $this->virtualAccounts($application),
             'formPaidAt' => $application->form_paid_at?->toDateTimeString(),
             'formPaymentNote' => $application->form_payment_note,
+            'cbtStatus' => $application->cbt_status ?? PmbLocalApplication::CBT_STATUS_LOCKED,
+            'cbtScore' => $application->cbt_score,
+            'cbtAttemptCount' => (int) ($application->cbt_attempt_count ?? 0),
+            'cbtPassedAt' => $application->cbt_passed_at?->toDateTimeString(),
             'academicPeriodId' => $application->academic_period_id,
             'academicPeriodName' => $application->academic_period_name,
             'registrationPeriodId' => $application->registration_period_id,
@@ -674,6 +706,19 @@ class PmbLocalApplicationController extends Controller
         }
 
         return ($application->form_payment_status ?? PmbLocalApplication::FORM_PAYMENT_PENDING) !== PmbLocalApplication::FORM_PAYMENT_PAID;
+    }
+
+    private function requiresCbtPass(PmbLocalApplication $application): bool
+    {
+        if (! $application->program_option_id) {
+            return false;
+        }
+
+        if ($this->requiresFormPayment($application)) {
+            return true;
+        }
+
+        return ! $application->hasPassedCbt();
     }
 
     private function virtualAccountNumber(PmbLocalApplication $application): string

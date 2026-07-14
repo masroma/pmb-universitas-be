@@ -17,6 +17,12 @@ class PmbLocalApplication extends Model
     public const FORM_PAYMENT_PENDING = 'pending';
     public const FORM_PAYMENT_PAID = 'paid';
 
+    public const CBT_STATUS_LOCKED = 'locked';
+    public const CBT_STATUS_AVAILABLE = 'available';
+    public const CBT_STATUS_IN_PROGRESS = 'in_progress';
+    public const CBT_STATUS_PASSED = 'passed';
+    public const CBT_STATUS_FAILED = 'failed';
+
     protected $fillable = [
         'user_id',
         'status',
@@ -26,6 +32,10 @@ class PmbLocalApplication extends Model
         'form_paid_at',
         'form_paid_by',
         'form_payment_note',
+        'cbt_status',
+        'cbt_score',
+        'cbt_attempt_count',
+        'cbt_passed_at',
         'academic_period_id',
         'academic_period_name',
         'registration_period_id',
@@ -72,12 +82,23 @@ class PmbLocalApplication extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'form_paid_at' => 'datetime',
+            'cbt_passed_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function cbtAttempts(): HasMany
+    {
+        return $this->hasMany(PmbCbtAttempt::class);
+    }
+
+    public function hasPassedCbt(): bool
+    {
+        return ($this->cbt_status ?? self::CBT_STATUS_LOCKED) === self::CBT_STATUS_PASSED;
     }
 
     public function reviewer(): BelongsTo

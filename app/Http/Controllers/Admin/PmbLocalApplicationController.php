@@ -67,6 +67,7 @@ class PmbLocalApplicationController extends Controller
             'campusSetting' => $this->campusSetting(),
             'statusLabels' => $this->statusLabels(),
             'formPaymentLabels' => $this->formPaymentLabels(),
+            'cbtStatusLabels' => $this->cbtStatusLabels(),
             'cascade' => PmbCascadeSnapshot::fromApplication($application),
         ]);
     }
@@ -124,6 +125,20 @@ class PmbLocalApplicationController extends Controller
 
         $isPaid = $payload['form_payment_status'] === PmbLocalApplication::FORM_PAYMENT_PAID;
 
+        $cbtUpdate = [];
+        if ($isPaid) {
+            if (($application->cbt_status ?? PmbLocalApplication::CBT_STATUS_LOCKED) === PmbLocalApplication::CBT_STATUS_LOCKED) {
+                $cbtUpdate['cbt_status'] = PmbLocalApplication::CBT_STATUS_AVAILABLE;
+            }
+        } else {
+            $cbtUpdate = [
+                'cbt_status' => PmbLocalApplication::CBT_STATUS_LOCKED,
+                'cbt_score' => null,
+                'cbt_attempt_count' => 0,
+                'cbt_passed_at' => null,
+            ];
+        }
+
         $application->update([
             'form_payment_status' => $payload['form_payment_status'],
             'form_payment_bank' => $isPaid ? ($payload['form_payment_bank'] ?? null) : null,
@@ -133,6 +148,7 @@ class PmbLocalApplicationController extends Controller
             'status' => $isPaid
                 ? PmbLocalApplication::STATUS_DRAFT
                 : PmbLocalApplication::STATUS_PAYMENT_PENDING,
+            ...$cbtUpdate,
         ]);
 
         AuditLogger::record(
@@ -154,6 +170,38 @@ class PmbLocalApplicationController extends Controller
         return redirect()
             ->route('admin.local-applications.show', $application)
             ->with('status', 'Status pembayaran formulir berhasil diperbarui.');
+    }
+
+    public function updateCbt(Request $request, PmbLocalApplication $application): RedirectResponse
+    {
+        $payload = $request->validate([
+            'cbt_status' => ['required', 'in:locked,available,passed,failed'],
+            'cbt_score' => ['nullable', 'integer', 'min:0', 'max:100'],
+            'cbt_note' => ['nullable', 'string'],
+        ]);
+
+        $before = $application->only(['cbt_status', 'cbt_score', 'cbt_passed_at', 'cbt_attempt_count']);
+        $status = $payload['cbt_status'];
+        $passed = $status === PmbLocalApplication::CBT_STATUS_PASSED;
+
+        $application->update([
+            'cbt_status' => $status,
+            'cbt_score' => $payload['cbt_score'] ?? ($passed ? 100 : $application->cbt_score),
+            'cbt_passed_at' => $passed ? ($application->cbt_passed_at ?? now()) : null,
+        ]);
+
+        AuditLogger::record(
+            'application_cbt_updated',
+            'pmb_local_applications',
+            $application->id,
+            $before,
+            $application->fresh()->only(['cbt_status', 'cbt_score', 'cbt_passed_at', 'cbt_attempt_count']),
+            $request,
+        );
+
+        return redirect()
+            ->route('admin.local-applications.show', $application)
+            ->with('status', 'Status CBT berhasil diperbarui.');
     }
 
     public function export(Request $request): StreamedResponse
@@ -213,6 +261,20 @@ class PmbLocalApplicationController extends Controller
         return [
             PmbLocalApplication::FORM_PAYMENT_PENDING => 'Belum Bayar',
             PmbLocalApplication::FORM_PAYMENT_PAID => 'Sudah Bayar',
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function cbtStatusLabels(): array
+    {
+        return [
+            PmbLocalApplication::CBT_STATUS_LOCKED => 'Terkunci',
+            PmbLocalApplication::CBT_STATUS_AVAILABLE => 'Siap Dikerjakan',
+            PmbLocalApplication::CBT_STATUS_IN_PROGRESS => 'Sedang Mengerjakan',
+            PmbLocalApplication::CBT_STATUS_PASSED => 'Lulus',
+            PmbLocalApplication::CBT_STATUS_FAILED => 'Tidak Lulus',
         ];
     }
 

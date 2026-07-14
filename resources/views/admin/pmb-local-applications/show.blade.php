@@ -190,6 +190,46 @@
                 </section>
 
                 <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 class="text-lg font-bold text-slate-950">Hasil CBT</h3>
+                    <p class="mt-2 text-sm leading-6 text-slate-500">
+                        Status tes seleksi CBT. Admin dapat override jika diperlukan.
+                    </p>
+                    <div class="mt-5 rounded-2xl bg-slate-50 p-4">
+                        <p class="text-sm text-slate-600">
+                            Status:
+                            <span class="font-bold {{ ($application->cbt_status ?? 'locked') === 'passed' ? 'text-emerald-700' : 'text-amber-700' }}">
+                                {{ $cbtStatusLabels[$application->cbt_status ?? 'locked'] ?? ($application->cbt_status ?? 'locked') }}
+                            </span>
+                        </p>
+                        <p class="mt-2 text-sm text-slate-600">Nilai: <span class="font-bold">{{ $application->cbt_score ?? '-' }}</span></p>
+                        <p class="mt-2 text-sm text-slate-600">Percobaan: <span class="font-bold">{{ $application->cbt_attempt_count ?? 0 }}</span></p>
+                        @if ($application->cbt_passed_at)
+                            <p class="mt-2 text-xs text-slate-500">Lulus: {{ $application->cbt_passed_at->format('d M Y H:i') }}</p>
+                        @endif
+                    </div>
+                    <form method="POST" action="{{ route('admin.local-applications.cbt.update', $application) }}" class="mt-5 space-y-4">
+                        @csrf
+                        @method('PUT')
+                        <div>
+                            <label for="cbt_status" class="text-sm font-semibold text-slate-700">Status CBT</label>
+                            <select id="cbt_status" name="cbt_status" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                                <option value="locked" @selected(($application->cbt_status ?? 'locked') === 'locked')>Terkunci</option>
+                                <option value="available" @selected(($application->cbt_status ?? '') === 'available')>Siap Dikerjakan</option>
+                                <option value="passed" @selected(($application->cbt_status ?? '') === 'passed')>Lulus</option>
+                                <option value="failed" @selected(($application->cbt_status ?? '') === 'failed')>Tidak Lulus</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="cbt_score" class="text-sm font-semibold text-slate-700">Nilai (opsional)</label>
+                            <input id="cbt_score" name="cbt_score" type="number" min="0" max="100" value="{{ old('cbt_score', $application->cbt_score) }}" class="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                        </div>
+                        <button type="submit" class="w-full rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-700">
+                            Simpan Status CBT
+                        </button>
+                    </form>
+                </section>
+
+                <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                     <h3 class="text-lg font-bold text-slate-950">Dokumen</h3>
                     <div class="mt-5 space-y-3">
                         @forelse ($application->documents as $document)

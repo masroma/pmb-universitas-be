@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesApiUser;
 use App\Http\Controllers\Controller;
 use App\Mail\Pmb\AccountRegisteredMail;
 use App\Models\User;
@@ -15,6 +16,8 @@ use Illuminate\Validation\Rules\Password;
 
 class AuthController extends Controller
 {
+    use ResolvesApiUser;
+
     public function register(Request $request): JsonResponse
     {
         $payload = $request->validate([
@@ -112,37 +115,5 @@ class AuthController extends Controller
             'data' => $this->userPayload($user),
             'token' => $user->id.'|'.$plainToken,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function userPayload(User $user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'phone' => $user->phone,
-            'role' => $user->role,
-        ];
-    }
-
-    private function userFromBearerToken(Request $request): ?User
-    {
-        $token = $request->bearerToken();
-
-        if (! $token || ! str_contains($token, '|')) {
-            return null;
-        }
-
-        [$userId, $plainToken] = explode('|', $token, 2);
-        $user = User::query()->find($userId);
-
-        if (! $user || ! $user->api_token) {
-            return null;
-        }
-
-        return hash_equals($user->api_token, hash('sha256', $plainToken)) ? $user : null;
     }
 }

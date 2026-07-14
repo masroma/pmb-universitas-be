@@ -7,9 +7,11 @@ Panduan ini menjelaskan deployment minimum untuk backend Laravel, frontend Nuxt,
 1. Set environment:
    - `APP_ENV=production`
    - `APP_DEBUG=false`
-   - `APP_URL=https://domain-kampus`
+   - `APP_URL=https://api-pmb.kucingganteng.my.id`
+   - `FRONTEND_URL=https://pmb-universitas-fe.vercel.app`
    - `DB_*` sesuai database production
-   - `AI_PMB_URL=https://ai-domain/chat`
+   - `AI_PMB_URL=https://ai-pmb.kucingganteng.my.id/chat`
+   - `AI_INTERNAL_API_KEY=` (sama dengan `PMB_INTERNAL_API_KEY` di AI service)
 2. Install dependency:
    - `composer install --no-dev --optimize-autoloader`
 3. Jalankan setup:
@@ -57,20 +59,26 @@ Catatan:
 
 ## Frontend Nuxt
 
-1. Set `NUXT_PUBLIC_API_BASE=https://domain-backend/api`.
+Domain: `https://pmb-universitas-fe.vercel.app`
+
+1. Set di Vercel (Production env):
+   - `NUXT_PUBLIC_API_BASE=https://api-pmb.kucingganteng.my.id/api`
 2. Install dependency:
    - `npm ci`
 3. Build:
    - `npm run build`
-4. Jalankan dengan process manager seperti PM2 atau layanan Node production.
+4. Deploy ke Vercel, atau jalankan dengan process manager seperti PM2.
 
 ## AI Service FastAPI
 
+Domain: `https://ai-pmb.kucingganteng.my.id`
+
 1. Set environment:
-   - `PMB_API_URL=https://domain-backend/api`
+   - `PMB_API_URL=https://api-pmb.kucingganteng.my.id/api`
+   - `PMB_INTERNAL_API_KEY=` (sama dengan `AI_INTERNAL_API_KEY` di backend)
    - `OPENAI_API_KEY=...`
    - `OPENAI_MODEL=gpt-4o-mini` atau model yang dipakai.
-   - `CORS_ORIGINS=https://domain-frontend`
+   - `CORS_ORIGINS=https://pmb-universitas-fe.vercel.app`
 2. Install dependency:
    - `pip install -r requirements.txt`
 3. Jalankan:

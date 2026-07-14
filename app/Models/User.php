@@ -6,8 +6,10 @@ namespace App\Models;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -29,6 +31,7 @@ class User extends Authenticatable
         'password',
         'role',
         'phone',
+        'profile_photo_path',
         'api_token',
     ];
 
@@ -64,5 +67,19 @@ class User extends Authenticatable
     public function hasAdminRole(string ...$roles): bool
     {
         return $this->role === self::ROLE_SUPER_ADMIN || in_array($this->role, $roles, true);
+    }
+
+    /**
+     * @return Attribute<string|null, never>
+     */
+    protected function profilePhotoUrl(): Attribute
+    {
+        return Attribute::get(function (): ?string {
+            if (! $this->profile_photo_path) {
+                return null;
+            }
+
+            return Storage::disk('public')->url($this->profile_photo_path);
+        });
     }
 }
