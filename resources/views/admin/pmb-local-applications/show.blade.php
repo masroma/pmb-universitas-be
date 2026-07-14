@@ -159,6 +159,17 @@
                         @if ($application->form_paid_at)
                             <p class="mt-2 text-xs text-slate-500">Diverifikasi: {{ $application->form_paid_at->format('d M Y H:i') }}</p>
                         @endif
+                        @if ($application->doku_invoice_number)
+                            <div class="mt-4 space-y-1 border-t border-slate-200 pt-3 text-xs text-slate-600">
+                                <p>DOKU Invoice: <span class="font-bold text-slate-800">{{ $application->doku_invoice_number }}</span></p>
+                                @if ($application->doku_payment_channel)
+                                    <p>Channel: <span class="font-bold text-slate-800">{{ $application->doku_payment_channel }}</span></p>
+                                @endif
+                                @if ($application->doku_paid_at)
+                                    <p>DOKU Paid At: <span class="font-bold text-slate-800">{{ $application->doku_paid_at->format('d M Y H:i') }}</span></p>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                     <form method="POST" action="{{ route('admin.local-applications.form-payment.update', $application) }}" class="mt-5 space-y-4">
                         @csrf

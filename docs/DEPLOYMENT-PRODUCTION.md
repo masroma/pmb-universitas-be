@@ -145,4 +145,13 @@ MAIL_FROM_NAME="PMB Kampus"
 FRONTEND_URL=https://domain-frontend
 ```
 
-Pembayaran biaya pendaftaran dilakukan **manual** (belum terintegrasi payment gateway). Instruksi pembayaran dikomunikasikan admin melalui email/WhatsApp.
+Pembayaran biaya formulir dapat memakai **DOKU Checkout**.
+
+1. Di admin: menu **Pembayaran DOKU**
+2. Isi Client ID + Secret Key (sandbox/production)
+3. Aktifkan checkbox
+4. Pasang Notification URL di dashboard DOKU:
+   - `https://api-pmb.kucingganteng.my.id/api/webhooks/doku`
+5. Pastikan `FRONTEND_URL` benar (dipakai sebagai callback setelah bayar)
+
+Override manual di detail pendaftaran tetap tersedia.

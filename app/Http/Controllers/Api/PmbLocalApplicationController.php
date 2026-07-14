@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Mail\Pmb\ApplicationSubmittedMail;
+use App\Models\PaymentGatewaySetting;
 use App\Models\PmbLocalApplication;
 use App\Models\PmbLocalApplicationDocument;
 use App\Models\User;
@@ -536,6 +537,7 @@ class PmbLocalApplicationController extends Controller
             'virtualAccounts' => $this->virtualAccounts($application),
             'formPaidAt' => $application->form_paid_at?->toDateTimeString(),
             'formPaymentNote' => $application->form_payment_note,
+            ...$this->dokuPaymentPayload($application),
             'cbtStatus' => $application->cbt_status ?? PmbLocalApplication::CBT_STATUS_LOCKED,
             'cbtScore' => $application->cbt_score,
             'cbtAttemptCount' => (int) ($application->cbt_attempt_count ?? 0),
@@ -719,6 +721,24 @@ class PmbLocalApplicationController extends Controller
         }
 
         return ! $application->hasPassedCbt();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function dokuPaymentPayload(PmbLocalApplication $application): array
+    {
+        $settings = PaymentGatewaySetting::current();
+        $configured = $settings->isConfigured();
+
+        return [
+            'dokuEnabled' => $configured,
+            'dokuInvoiceNumber' => $application->doku_invoice_number,
+            'dokuPaymentUrl' => $application->doku_payment_url,
+            'dokuPaymentChannel' => $application->doku_payment_channel,
+            'dokuPaidAt' => $application->doku_paid_at?->toDateTimeString(),
+            'dokuCheckoutJsUrl' => $configured ? $settings->dokuCheckoutJsUrl() : null,
+        ];
     }
 
     private function virtualAccountNumber(PmbLocalApplication $application): string

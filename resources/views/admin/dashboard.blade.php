@@ -5,14 +5,16 @@
 
 @section('content')
     <div class="space-y-6">
-        <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <section class="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-[#0C1222] via-[#141C2E] to-[#1C2740] p-6 text-white shadow-[0_18px_50px_-28px_rgba(7,11,20,0.45)] sm:p-8">
+            <div class="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[#C4A574]/20 blur-3xl"></div>
+            <div class="pointer-events-none absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-white/5 blur-2xl"></div>
+            <div class="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <p class="text-sm font-semibold text-blue-700">Funnel PMB AI</p>
-                    <h2 class="mt-2 text-3xl font-bold tracking-[-0.04em] text-slate-950">Dashboard {{ $campusSetting->campus_name }}</h2>
-                    <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-500">Pantau performa chat AI, lead CRM, akun calon mahasiswa, dan pendaftaran yang masuk.</p>
+                    <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-[#E8D5B5]">Funnel PMB AI</p>
+                    <h2 class="mt-2 font-display text-4xl font-semibold tracking-[-0.03em] text-white">Dashboard {{ $campusSetting->campus_name }}</h2>
+                    <p class="mt-3 max-w-2xl text-sm leading-6 text-white/65">Pantau performa chat AI, lead CRM, akun calon mahasiswa, dan pendaftaran yang masuk.</p>
                 </div>
-                <a href="{{ route('admin.master-pmb.index', 'campuses') }}" class="inline-flex w-fit items-center justify-center rounded-2xl bg-blue-700 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-700/20 transition hover:bg-blue-800">
+                <a href="{{ route('admin.master-pmb.index', 'campuses') }}" class="inline-flex w-fit items-center justify-center rounded-2xl bg-gradient-to-r from-[#E8D5B5] to-[#C4A574] px-5 py-3 text-sm font-bold text-[#0C1222] shadow-[0_16px_40px_-20px_rgba(196,165,116,0.9)] transition hover:brightness-105">
                     Kelola Master PMB
                 </a>
             </div>

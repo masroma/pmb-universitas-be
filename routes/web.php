@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AiChatLeadController;
+use App\Http\Controllers\Admin\PaymentGatewaySettingController;
 use App\Http\Controllers\Admin\AiDashboardController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\CampusSettingController;
@@ -73,5 +74,7 @@ Route::middleware('auth')->prefix('admin')->name('admin.')->group(function (): v
     Route::put('/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
     Route::get('/settings', [CampusSettingController::class, 'edit'])->middleware('admin.role:super_admin,admin_pmb')->name('settings.edit');
     Route::put('/settings', [CampusSettingController::class, 'update'])->middleware('admin.role:super_admin,admin_pmb')->name('settings.update');
+    Route::get('/pembayaran-doku', [PaymentGatewaySettingController::class, 'edit'])->middleware('admin.role:super_admin,admin_pmb')->name('payment-gateway.edit');
+    Route::put('/pembayaran-doku', [PaymentGatewaySettingController::class, 'update'])->middleware('admin.role:super_admin,admin_pmb')->name('payment-gateway.update');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 });

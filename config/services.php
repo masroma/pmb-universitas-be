@@ -23,7 +23,7 @@ return [
     ],
 
     'ai_pmb' => [
-        'url' => env('AI_PMB_URL', 'http://127.0.0.1:8000/chat'),
+        'url' => env('AI_PMB_URL', 'http://127.0.0.1:8001/chat'),
         'timeout' => env('AI_PMB_TIMEOUT', 20),
         'internal_api_key' => env('AI_INTERNAL_API_KEY'),
     ],

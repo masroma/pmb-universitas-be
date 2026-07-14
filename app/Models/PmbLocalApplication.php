@@ -32,6 +32,12 @@ class PmbLocalApplication extends Model
         'form_paid_at',
         'form_paid_by',
         'form_payment_note',
+        'doku_invoice_number',
+        'doku_request_id',
+        'doku_payment_url',
+        'doku_payment_channel',
+        'doku_paid_at',
+        'doku_raw_payload',
         'cbt_status',
         'cbt_score',
         'cbt_attempt_count',
@@ -82,6 +88,8 @@ class PmbLocalApplication extends Model
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'form_paid_at' => 'datetime',
+            'doku_paid_at' => 'datetime',
+            'doku_raw_payload' => 'array',
             'cbt_passed_at' => 'datetime',
         ];
     }

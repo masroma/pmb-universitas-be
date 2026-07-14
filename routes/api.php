@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PmbLandingContentController;
 use App\Http\Controllers\Api\PmbRegistrationCascadeController;
 use App\Http\Controllers\Api\PmbCbtController;
 use App\Http\Controllers\Api\PmbLocalApplicationController;
+use App\Http\Controllers\Api\DokuPaymentController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -51,6 +52,9 @@ Route::post('/registration/cascade', [PmbLocalApplicationController::class, 'sto
 Route::post('/registration', [PmbLocalApplicationController::class, 'store']);
 Route::post('/registration/submit', [PmbLocalApplicationController::class, 'submit']);
 Route::post('/registration/documents', [PmbLocalApplicationController::class, 'uploadDocument']);
+Route::post('/registration/payment/create', [DokuPaymentController::class, 'create']);
+Route::get('/registration/payment/status', [DokuPaymentController::class, 'status']);
+Route::post('/webhooks/doku', [DokuPaymentController::class, 'webhook']);
 Route::get('/registration/cbt', [PmbCbtController::class, 'show']);
 Route::post('/registration/cbt/start', [PmbCbtController::class, 'start']);
 Route::get('/registration/cbt/attempts/{attemptId}', [PmbCbtController::class, 'attempt']);
