@@ -262,7 +262,7 @@ class StandalonePmbSeeder extends Seeder
         $classes = [
             ['code' => 'reguler-pagi', 'name' => 'Reguler Pagi', 'schedule_label' => 'Senin-Jumat pagi/siang', 'description' => 'Kelas reguler untuk mahasiswa penuh waktu.'],
             ['code' => 'malam', 'name' => 'Kelas Malam', 'schedule_label' => 'Hari kerja malam', 'description' => 'Cocok untuk calon mahasiswa yang bekerja.'],
-            ['code' => 'sabtu', 'name' => 'Kelas Sabtu', 'schedule_label' => 'Sabtu pagi/siang', 'description' => 'Cocok untuk karyawan dengan jadwal kerja reguler.'],
+            ['code' => 'sabtu', 'name' => 'Kelas Sabtu', 'schedule_label' => 'Sabtu pagi/siang', 'description' => 'Cocok untuk mahasiswa dengan jadwal kerja reguler.'],
             ['code' => 'hybrid', 'name' => 'Hybrid / Mix Learning', 'schedule_label' => 'Kombinasi online dan offline', 'description' => 'Perkuliahan memadukan sesi daring dan tatap muka.', 'is_online' => true],
         ];
 
@@ -348,9 +348,9 @@ class StandalonePmbSeeder extends Seeder
     private function seedAdmissionPaths(int $institutionId): array
     {
         $paths = [
-            ['code' => 'reguler', 'name' => 'Reguler', 'description' => 'Jalur reguler untuk lulusan baru maupun calon mahasiswa umum.', 'registration_fee' => 300000],
-            ['code' => 'karyawan', 'name' => 'Karyawan', 'description' => 'Jalur kelas karyawan untuk calon mahasiswa yang sudah bekerja.', 'registration_fee' => 350000],
-            ['code' => 'rpl', 'name' => 'RPL (Rekognisi Pembelajaran Lampau)', 'description' => 'Jalur penyetaraan pengalaman belajar dan kerja sebelumnya.', 'registration_fee' => 500000],
+            ['code' => 'reguler', 'name' => 'Reguler (Kelas A)', 'description' => 'Kelas A untuk mahasiswa penuh waktu dengan jadwal kuliah reguler.', 'registration_fee' => 300000],
+            ['code' => 'karyawan', 'name' => 'Kelas B & C', 'description' => 'Pilihan kelas B dan C dengan jadwal kuliah yang lebih fleksibel.', 'registration_fee' => 350000],
+            ['code' => 'rpl', 'name' => 'RPL', 'description' => 'Rekognisi Pembelajaran Lampau untuk penyetaraan pengalaman belajar dan kerja sebelumnya.', 'registration_fee' => 500000],
         ];
 
         foreach ($paths as $index => $path) {

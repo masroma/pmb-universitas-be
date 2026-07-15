@@ -90,20 +90,44 @@ class PmbLandingContentController extends Controller
 
     private function paths(): array
     {
+        // Public landing only shows the 3 main study tracks (not Sevima jalur-masuk list).
+        $displayByCode = [
+            'reguler' => [
+                'title' => 'Reguler (Kelas A)',
+                'description' => 'Kelas A untuk mahasiswa penuh waktu dengan jadwal kuliah reguler.',
+            ],
+            'karyawan' => [
+                'title' => 'Kelas B & C',
+                'description' => 'Pilihan kelas B dan C dengan jadwal kuliah yang lebih fleksibel.',
+            ],
+            'rpl' => [
+                'title' => 'RPL',
+                'description' => 'Rekognisi Pembelajaran Lampau untuk penyetaraan pengalaman belajar dan kerja sebelumnya.',
+            ],
+        ];
+
+        $period = $this->activePeriodLabel();
+
         return DB::table('admission_paths')
             ->where('is_active', true)
-            ->orderBy('jenis_pendaftaran_name')
+            ->whereIn('code', array_keys($displayByCode))
             ->orderBy('sort_order')
-            ->orderBy('name')
             ->get()
-            ->map(fn ($path): array => [
-                'title' => $path->name,
-                'period' => $this->activePeriodLabel(),
-                'fee' => 'Rp '.number_format((int) $path->registration_fee, 0, ',', '.'),
-                'description' => $path->description,
-                'jenisPendaftaran' => $path->jenis_pendaftaran_name ?: 'Lainnya',
-                'jenisPendaftaranId' => $path->jenis_pendaftaran_id,
-            ])
+            ->map(function ($path) use ($displayByCode, $period): array {
+                $display = $displayByCode[$path->code] ?? [
+                    'title' => $path->name,
+                    'description' => $path->description,
+                ];
+
+                return [
+                    'code' => $path->code,
+                    'title' => $display['title'],
+                    'period' => $period,
+                    'fee' => 'Rp '.number_format((int) $path->registration_fee, 0, ',', '.'),
+                    'description' => $display['description'],
+                ];
+            })
+            ->values()
             ->all();
     }
 
