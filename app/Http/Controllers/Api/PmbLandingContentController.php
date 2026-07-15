@@ -92,6 +92,7 @@ class PmbLandingContentController extends Controller
     {
         return DB::table('admission_paths')
             ->where('is_active', true)
+            ->orderBy('jenis_pendaftaran_name')
             ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
@@ -100,6 +101,8 @@ class PmbLandingContentController extends Controller
                 'period' => $this->activePeriodLabel(),
                 'fee' => 'Rp '.number_format((int) $path->registration_fee, 0, ',', '.'),
                 'description' => $path->description,
+                'jenisPendaftaran' => $path->jenis_pendaftaran_name ?: 'Lainnya',
+                'jenisPendaftaranId' => $path->jenis_pendaftaran_id,
             ])
             ->all();
     }
