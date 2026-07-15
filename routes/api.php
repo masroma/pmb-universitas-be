@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\PmbRegistrationCascadeController;
 use App\Http\Controllers\Api\PmbCbtController;
 use App\Http\Controllers\Api\PmbLocalApplicationController;
 use App\Http\Controllers\Api\DokuPaymentController;
+use App\Http\Controllers\Api\TuitionFeeController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,7 @@ Route::get('/health', function () {
 
 Route::get('/settings', [CampusSettingController::class, 'show']);
 Route::get('/landing-content', [PmbLandingContentController::class, 'index']);
+Route::get('/tuition-fees', [TuitionFeeController::class, 'index']);
 Route::get('/pmb-information', [PmbInformationSectionController::class, 'index']);
 
 Route::post('/register', [AuthController::class, 'register']);

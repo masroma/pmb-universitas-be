@@ -17,6 +17,7 @@ class PmbLandingContentController extends Controller
                 'paths' => $this->paths(),
                 'registrationFlows' => $this->registrationFlows(),
                 'brochureUrl' => $this->brochureUrl(),
+                'tuitionFees' => $this->tuitionFees(),
             ],
         ]);
     }
@@ -131,6 +132,62 @@ class PmbLandingContentController extends Controller
             ->whereNotNull('brochure_url')
             ->orderByDesc('starts_at')
             ->value('brochure_url');
+    }
+
+    private function tuitionFees(): array
+    {
+        return DB::table('pmb_registration_options')
+            ->join('pmb_admission_periods', 'pmb_admission_periods.id', '=', 'pmb_registration_options.admission_period_id')
+            ->leftJoin('pmb_waves', 'pmb_waves.id', '=', 'pmb_registration_options.wave_id')
+            ->join('campus_study_programs', 'campus_study_programs.id', '=', 'pmb_registration_options.campus_study_program_id')
+            ->join('campuses', 'campuses.id', '=', 'campus_study_programs.campus_id')
+            ->join('study_programs', 'study_programs.id', '=', 'campus_study_programs.study_program_id')
+            ->join('admission_paths', 'admission_paths.id', '=', 'pmb_registration_options.admission_path_id')
+            ->leftJoin('class_types', 'class_types.id', '=', 'pmb_registration_options.class_type_id')
+            ->leftJoin('tuition_fee_schemes', function ($join): void {
+                $join->on('tuition_fee_schemes.registration_option_id', '=', 'pmb_registration_options.id')
+                    ->where('tuition_fee_schemes.is_active', true);
+            })
+            ->where('pmb_registration_options.is_active', true)
+            ->where('pmb_admission_periods.is_active', true)
+            ->where('campuses.is_active', true)
+            ->where('study_programs.is_active', true)
+            ->where('admission_paths.is_active', true)
+            ->orderBy('study_programs.level')
+            ->orderBy('study_programs.sort_order')
+            ->orderBy('campuses.sort_order')
+            ->orderBy('admission_paths.sort_order')
+            ->select([
+                'pmb_registration_options.id',
+                'study_programs.level as program_level',
+                'study_programs.name as study_program',
+                'campuses.name as campus',
+                'pmb_waves.name as wave',
+                'admission_paths.name as registration_path',
+                'class_types.name as class_type',
+                DB::raw('COALESCE(tuition_fee_schemes.registration_fee, admission_paths.registration_fee, 0) as registration_fee'),
+                'tuition_fee_schemes.installment_count',
+                'tuition_fee_schemes.installment_amount',
+                'tuition_fee_schemes.semester_fee',
+                'tuition_fee_schemes.total_first_payment',
+            ])
+            ->get()
+            ->map(fn ($row): array => [
+                'id' => (int) $row->id,
+                'programLevel' => $row->program_level ?: '-',
+                'studyProgram' => $row->study_program,
+                'campus' => $row->campus,
+                'wave' => $row->wave,
+                'registrationPath' => $row->registration_path,
+                'classType' => $row->class_type,
+                'registrationFee' => (int) ($row->registration_fee ?? 0),
+                'installmentCount' => $row->installment_count !== null ? (int) $row->installment_count : null,
+                'installmentAmount' => $row->installment_amount !== null ? (int) $row->installment_amount : null,
+                'semesterFee' => $row->semester_fee !== null ? (int) $row->semester_fee : null,
+                'totalFirstPayment' => $row->total_first_payment !== null ? (int) $row->total_first_payment : null,
+            ])
+            ->values()
+            ->all();
     }
 
     private function activePeriodLabel(): string
